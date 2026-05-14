@@ -8,7 +8,20 @@ export default function AuditHistory() {
   const [entries, setEntries] = useState<AuditHistoryEntry[]>([]);
 
   useEffect(() => {
-    setEntries(getHistory());
+    const local = getHistory();
+    setEntries(local);
+    fetch('/api/history')
+      .then((r) => r.json())
+      .then((server: AuditHistoryEntry[]) => {
+        const merged = [...local];
+        const ids = new Set(merged.map((e) => e.auditId));
+        for (const s of server) {
+          if (!ids.has(s.auditId)) merged.push(s);
+        }
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setEntries(merged);
+      })
+      .catch(() => {});
   }, []);
 
   if (entries.length === 0) return null;
