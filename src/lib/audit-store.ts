@@ -1,6 +1,6 @@
 import type { AuditState, AuditReport } from '@/types/audit';
 import type { AuditHistoryEntry } from '@/lib/audit-history';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const store = new Map<string, AuditState>();
@@ -47,6 +47,19 @@ function saveHistoryEntry(report: AuditReport): void {
       createdAt: report.createdAt,
     });
     writeFileSync(HISTORY_FILE, JSON.stringify(history.slice(0, MAX_HISTORY)), 'utf-8');
+  } catch { /* best effort */ }
+}
+
+export function clearServerHistory(): void {
+  try {
+    ensureReportsDir();
+    writeFileSync(HISTORY_FILE, '[]', 'utf-8');
+    // Also remove all report JSON files
+    for (const file of readdirSync(REPORTS_DIR)) {
+      if (file.endsWith('.json') && file !== '_history.json') {
+        try { unlinkSync(join(REPORTS_DIR, file)); } catch { /* ignore */ }
+      }
+    }
   } catch { /* best effort */ }
 }
 
