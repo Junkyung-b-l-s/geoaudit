@@ -1,9 +1,11 @@
 export const KEYWORD_ALIGNMENT_SYSTEM = `You are a GEO (Generative Engine Optimization) analyst.
-Evaluate whether a page's Title, H1, and Meta Description are aligned on a coherent topic.
-Return JSON: { "score": 0-100, "reason": "brief explanation in Korean" }`;
+Evaluate whether each page's Title, H1, and Meta Description are aligned on a coherent topic.
+Return JSON: { "results": [{ "url": "...", "score": 0-100, "reason": "brief explanation in Korean" }] }`;
 
-export function keywordAlignmentUser(title: string, h1: string, metaDesc: string): string {
-  return `Title: ${title}\nH1: ${h1}\nMeta Description: ${metaDesc}\n\nAre these aligned on a single coherent topic? Score 0-100.`;
+export function keywordAlignmentBatchUser(pages: { url: string; title: string; h1: string; metaDesc: string }[]): string {
+  return pages.map((p) =>
+    `URL: ${p.url}\nTitle: ${p.title}\nH1: ${p.h1}\nMeta Description: ${p.metaDesc}`
+  ).join('\n---\n') + '\n\nFor each page, score 0-100 how well Title/H1/Meta are aligned.';
 }
 
 export const META_QUALITY_SYSTEM = `You are a GEO analyst. Evaluate meta description quality.
