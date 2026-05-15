@@ -6,7 +6,7 @@ import { join } from 'path';
 const store = new Map<string, AuditState>();
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
-const REPORTS_DIR = join(process.cwd(), '.reports');
+const REPORTS_DIR = process.env.REPORTS_DIR || join(process.cwd(), '.reports');
 const HISTORY_FILE = join(REPORTS_DIR, '_history.json');
 const MAX_HISTORY = 100;
 
