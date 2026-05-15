@@ -95,6 +95,7 @@ export async function runAudit(auditId: string, config: AuditConfig, onProgress:
       emit('lighthouse', 50, `PSI 분석 완료! 성능 ${lighthouseData.performanceScore}점, LCP ${lcpSec}초${cruxMsg}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'PSI API error';
+      console.error('[Lighthouse] PSI failed:', msg, '| PSI_API_KEY set:', !!process.env.PSI_API_KEY);
       emit('lighthouse', 50, `PSI 분석을 건너뛰었어요 (${msg}). 나머지 항목은 정상 진행됩니다`);
     }
 

@@ -18,7 +18,7 @@ export async function GET(
       let lastStage = '';
       let lastProgress = -1;
 
-      for (let i = 0; i < 600; i++) { // Max 5 minutes
+      for (let i = 0; i < 1200; i++) { // Max 10 minutes
         const audit = getAudit(auditId);
 
         if (!audit) {
