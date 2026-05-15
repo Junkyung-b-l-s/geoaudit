@@ -3,7 +3,9 @@ import type { LighthouseData, CruxData, CruxMetric, PsiDiagnostic } from '@/type
 const PSI_API = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
 export async function runLighthouse(url: string): Promise<LighthouseData> {
-  const apiUrl = `${PSI_API}?url=${encodeURIComponent(url)}&strategy=desktop&category=performance&category=accessibility&category=best-practices&category=seo`;
+  const apiKey = process.env.PSI_API_KEY || '';
+  const keyParam = apiKey ? `&key=${apiKey}` : '';
+  const apiUrl = `${PSI_API}?url=${encodeURIComponent(url)}&strategy=desktop&category=performance&category=accessibility&category=best-practices&category=seo${keyParam}`;
 
   const res = await fetch(apiUrl, { signal: AbortSignal.timeout(120_000) });
   if (!res.ok) {
