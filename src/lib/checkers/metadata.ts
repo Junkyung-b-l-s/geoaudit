@@ -15,7 +15,7 @@ export const metadataCheckers: CheckerDefinition[] = [
 
       if (!title) return { id: '3.1', status: 'fail', severity: 'critical', title: 'Title 태그', description: 'title 태그 없음', score: 0 };
       if (title.length < 10) return { id: '3.1', status: 'warning', severity: 'critical', title: 'Title 태그', description: `title: '${title}' (${title.length}자, 권장 50-60자) — 너무 짧아 페이지 주제를 충분히 전달하지 못합니다`, details: title, score: 40 };
-      if (title.length > 70) return { id: '3.1', status: 'warning', severity: 'critical', title: 'Title 태그', description: `title: '${title.slice(0, 60)}…' (${title.length}자, 권장 50-60자) — 너무 길어 검색결과에서 잘릴 수 있습니다`, details: title, score: 60 };
+      if (title.length > 70) return { id: '3.1', status: 'warning', severity: 'critical', title: 'Title 태그', description: `title: '${title.slice(0, 60)}…' (${title.length}자, 권장 50-60자) — 너무 길어 검색결과에서 잘릴 수 있습니다`, details: title, score: 50 };
 
       return { id: '3.1', status: 'pass', severity: 'critical', title: 'Title 태그', description: `title: '${title}' (${title.length}자, 권장 50-60자) — 적정 길이`, details: title, score: 100 };
     },
@@ -125,7 +125,7 @@ export const metadataCheckers: CheckerDefinition[] = [
         return { id: '3.6', status: 'pass', severity: 'medium', title: 'Noscript', description: `의미 있는 noscript 콘텐츠 ${meaningful.length}개 존재`, score: 100 };
       }
 
-      return { id: '3.6', status: 'warning', severity: 'medium', title: 'Noscript', description: 'noscript 대체 콘텐츠 없음', score: 30 };
+      return { id: '3.6', status: 'warning', severity: 'medium', title: 'Noscript', description: 'noscript 대체 콘텐츠 없음', score: 40 };
     },
   },
   {
@@ -286,7 +286,7 @@ export const metadataCheckers: CheckerDefinition[] = [
         return { id: '3.11', status: 'pass', severity: 'high', title: '업데이트 날짜', description: `datePublished: ${dpVal}, dateModified: ${dmVal}`, score: 100 };
       }
       if (hasPublished) {
-        return { id: '3.11', status: 'warning', severity: 'high', title: '업데이트 날짜', description: `datePublished: ${dpVal}, dateModified: 없음 — 마지막 수정일이 없어 AI가 콘텐츠 최신성을 판단할 수 없습니다`, score: 60 };
+        return { id: '3.11', status: 'warning', severity: 'high', title: '업데이트 날짜', description: `datePublished: ${dpVal}, dateModified: 없음 — 마지막 수정일이 없어 AI가 콘텐츠 최신성을 판단할 수 없습니다`, score: 40 };
       }
 
       return { id: '3.11', status: 'fail', severity: 'high', title: '업데이트 날짜', description: '날짜 정보 없음 (Schema) — datePublished, dateModified 모두 없음', score: 0 };
@@ -340,6 +340,7 @@ export const metadataCheckers: CheckerDefinition[] = [
         const links = withSameAs.flatMap((s) =>
           Array.isArray(s.sameAs) ? s.sameAs : [s.sameAs]
         ).filter((l): l is string => typeof l === 'string');
+        const sameAsScore = links.length >= 5 ? 100 : links.length >= 3 ? 90 : links.length >= 2 ? 70 : 50;
         return {
           id: '3.14',
           status: 'pass',
@@ -347,7 +348,7 @@ export const metadataCheckers: CheckerDefinition[] = [
           title: '엔티티 스키마 (sameAs)',
           description: `sameAs 속성 발견 (${links.length}개 외부 프로필): ${links.slice(0, 3).join(', ')}${links.length > 3 ? ` 외 ${links.length - 3}개` : ''}`,
           details: links.slice(0, 5).join('\n'),
-          score: 100,
+          score: sameAsScore,
         };
       }
 

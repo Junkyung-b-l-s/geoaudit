@@ -106,7 +106,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
       const maxPage = perPageCounts.find((p) => p.count === maxLinks);
 
       const score = orphans.length === 0 && avgLinks >= 3 ? 100
-        : orphans.length === 0 ? 80
+        : orphans.length === 0 ? 60
         : orphans.length <= 3 ? 60
         : 30;
 

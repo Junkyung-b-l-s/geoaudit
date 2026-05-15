@@ -28,7 +28,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
           severity: 'critical',
           title: 'Robots.txt',
           description: 'robots.txt 파일이 존재하지 않습니다.',
-          score: 50,
+          score: 30,
         };
       }
 
@@ -98,7 +98,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
           severity: 'critical',
           title: 'AI 크롤러 허용 여부',
           description: 'robots.txt 없음 — AI 크롤러 차단 여부 확인 불가 (기본 허용)',
-          score: 80,
+          score: 60,
         };
       }
 
@@ -381,12 +381,12 @@ export const crawlingCheckers: CheckerDefinition[] = [
 
       return {
         id: '4.8',
-        status: mismatches.length > 0 ? 'warning' : 'pass',
+        status: 'info',
         severity: 'high',
         title: 'Sitemap lastmod 정확성',
-        description: `sitemap에 ${matches}개 URL의 lastmod 존재`,
+        description: `sitemap에 ${matches}개 URL의 lastmod 존재 확인됨 (정확성 미검증)`,
         details: `샘플 lastmod:\n${sampleDetail}`,
-        score: mismatches.length > 0 ? 60 : 100,
+        score: 70,
       };
     },
   },
@@ -426,9 +426,9 @@ export const crawlingCheckers: CheckerDefinition[] = [
       }
 
       return {
-        id: '4.10', status: 'warning', severity: 'high', title: 'AI 에이전트 연동 파일',
-        description: 'ai-plugin.json, ai.txt 등 AI 에이전트 연동 파일이 없습니다.',
-        score: 20,
+        id: '4.10', status: 'info', severity: 'high', title: 'AI 에이전트 연동 파일',
+        description: 'ai-plugin.json, ai.txt 등 AI 에이전트 연동 파일이 없습니다. 아직 표준화되지 않은 영역입니다.',
+        score: 50,
       };
     },
   },
@@ -670,7 +670,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
       }
 
       return {
-        id: '4.14', status: 'info', severity: 'medium', title: 'API/데이터 엔드포인트',
+        id: '4.14', status: 'na', severity: 'medium', title: 'API/데이터 엔드포인트',
         description: '공개 API 엔드포인트가 발견되지 않았습니다. 필수 사항은 아니지만 AI 에이전트 연동에 유리합니다.',
         score: 50,
       };

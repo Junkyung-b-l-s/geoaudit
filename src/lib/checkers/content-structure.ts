@@ -28,7 +28,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
           id: '2.1', status: 'warning', severity: 'critical', title: '헤딩 계층 구조',
           description: `H1 ${h1Count}개 — 페이지당 1개 권장`,
           details: headings.filter((h) => h.level === 1).map((h) => `H1: ${h.text}`).join('\n'),
-          score: 40,
+          score: 20,
         };
       }
 
@@ -86,7 +86,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
 
       const tagSummary = Object.entries(counts).map(([tag, count]) => `${tag} ${count}`).join(', ');
       const ratioPercent = (ratio * 100).toFixed(1);
-      const score = ratio >= 0.2 ? 100 : ratio >= 0.1 ? 70 : ratio >= 0.05 ? 50 : 30;
+      const score = ratio >= 0.2 ? 100 : ratio >= 0.1 ? 70 : ratio >= 0.05 ? 50 : 10;
       const ratingLabel = ratio >= 0.2 ? '우수' : ratio >= 0.1 ? '양호' : ratio >= 0.05 ? '미흡' : '부족';
       const ratingThreshold = '기준 10% 이상';
 
@@ -161,11 +161,14 @@ export const contentStructureCheckers: CheckerDefinition[] = [
         dls > 0 && `dl ${dls}개`,
       ].filter(Boolean).join(', ');
 
+      const aiScore = total >= 10 ? 100 : total >= 6 ? 85 : total >= 3 ? 70 : 50;
+      const aiStatus = total >= 3 ? 'pass' : 'warning';
+
       return {
-        id: '2.4', status: 'pass', severity: 'high', title: 'AI 가독 마크업',
+        id: '2.4', status: aiStatus, severity: 'high', title: 'AI 가독 마크업',
         description: `${detailParts} — 데이터가 구조화되어 AI가 정보를 정확히 추출할 수 있습니다`,
         details: detailParts,
-        score: total >= 3 ? 100 : total >= 1 ? 70 : 40,
+        score: aiScore,
       };
     },
   },
@@ -275,7 +278,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
         : undefined;
 
       return {
-        id: '2.7', status: altRate >= 0.7 ? 'pass' : 'warning', severity: 'high',
+        id: '2.7', status: altRate >= 0.8 ? 'pass' : 'warning', severity: 'high',
         title: '멀티모달 텍스트 대체', description: desc, details, score,
       };
     },
@@ -317,7 +320,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
         };
       }
 
-      const score = textRatio >= 0.15 ? 100 : textRatio >= 0.08 ? 80 : 60;
+      const score = textRatio >= 0.15 ? 100 : textRatio >= 0.08 ? 80 : 40;
 
       const ratioPercent = (textRatio * 100).toFixed(1);
       const ratioLabel = textRatio >= 0.15 ? '양호' : '다소 낮음';
@@ -401,7 +404,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
         return {
           id: '2.10', status: 'warning', severity: 'medium', title: '정의/용어 마크업',
           description: 'dfn, abbr, dt 등 정의 마크업이 없습니다. "X란 무엇인가" 류의 AI 질문에 인용되기 어렵습니다.',
-          score: 30,
+          score: 10,
         };
       }
 

@@ -45,7 +45,7 @@ function buildCategoryScores(results: CheckResult[]): CategoryScore[] {
     for (const item of dedupItems) {
       item.layer = CHECK_LAYER[item.id] || 'both';
     }
-    const score = weightedAverage(items);
+    const score = weightedAverage(dedupItems);
     return {
       id: cat,
       name: CATEGORY_NAMES[cat] || cat,
@@ -94,7 +94,8 @@ function getCategoryFromId(id: string): string {
   if (num < 3) return 'content';
   if (num < 4) return 'metadata';
   if (num < 5) return 'crawling';
-  return 'structure';
+  if (num < 6) return 'structure';
+  return 'authority';
 }
 
 function deduplicateById(results: CheckResult[]): CheckResult[] {

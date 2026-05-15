@@ -17,14 +17,14 @@ export const performanceCheckers: CheckerDefinition[] = [
       const issues: string[] = [];
       let score = 100;
 
-      if (lcp > 4000) { issues.push(`LCP ${(lcp / 1000).toFixed(1)}초로 Google 권장(4초) 대폭 초과 — AI 크롤러 타임아웃 및 이탈률 급증 위험`); score -= 40; }
-      else if (lcp > 2500) { issues.push(`LCP ${(lcp / 1000).toFixed(1)}초로 Google 권장(2.5초) 초과 — AI 크롤러 타임아웃 위험`); score -= 20; }
+      if (lcp > 4000) { issues.push(`LCP ${(lcp / 1000).toFixed(1)}초로 Google 권장(4초) 대폭 초과 — AI 크롤러 타임아웃 및 이탈률 급증 위험`); score -= 50; }
+      else if (lcp > 2500) { issues.push(`LCP ${(lcp / 1000).toFixed(1)}초로 Google 권장(2.5초) 초과 — AI 크롤러 타임아웃 위험`); score -= 30; }
 
-      if (cls > 0.25) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.25) 초과 — 레이아웃 불안정으로 UX 저하`); score -= 30; }
-      else if (cls > 0.1) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.1) 초과 — 레이아웃 시프트 개선 필요`); score -= 15; }
+      if (cls > 0.25) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.25) 초과 — 레이아웃 불안정으로 UX 저하`); score -= 40; }
+      else if (cls > 0.1) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.1) 초과 — 레이아웃 시프트 개선 필요`); score -= 20; }
 
-      if (inp > 500) { issues.push(`INP ${inp}ms로 Google 권장(500ms) 초과 — 인터랙션 심각하게 느림`); score -= 30; }
-      else if (inp > 200) { issues.push(`INP ${inp}ms로 Google 권장(200ms) 초과 — 인터랙션 응답 개선 필요`); score -= 15; }
+      if (inp > 500) { issues.push(`INP ${inp}ms로 Google 권장(500ms) 초과 — 인터랙션 심각하게 느림`); score -= 40; }
+      else if (inp > 200) { issues.push(`INP ${inp}ms로 Google 권장(200ms) 초과 — 인터랙션 응답 개선 필요`); score -= 20; }
 
       return {
         id: '1.1',
@@ -52,11 +52,11 @@ export const performanceCheckers: CheckerDefinition[] = [
       const issues: string[] = [];
       let score = 100;
 
-      if (ttfb > 1800) { issues.push(`TTFB ${ttfb}ms로 권장(1800ms)보다 ${Math.round((ttfb - 1800) / 1800 * 100)}% 느림 — 서버 응답 심각하게 지연`); score -= 40; }
-      else if (ttfb > 800) { issues.push(`TTFB ${ttfb}ms로 권장(800ms)보다 ${Math.round((ttfb - 800) / 800 * 100)}% 느림 — 서버 응답 최적화 필요`); score -= 20; }
+      if (ttfb > 1800) { issues.push(`TTFB ${ttfb}ms로 권장(1800ms)보다 ${Math.round((ttfb - 1800) / 1800 * 100)}% 느림 — 서버 응답 심각하게 지연`); score -= 50; }
+      else if (ttfb > 800) { issues.push(`TTFB ${ttfb}ms로 권장(800ms)보다 ${Math.round((ttfb - 800) / 800 * 100)}% 느림 — 서버 응답 최적화 필요`); score -= 25; }
 
-      if (tti > 7300) { issues.push(`TTI ${(tti / 1000).toFixed(1)}초로 권장(7.3초)보다 ${Math.round((tti - 7300) / 7300 * 100)}% 느림 — 페이지 인터랙션 심각하게 지연`); score -= 40; }
-      else if (tti > 3800) { issues.push(`TTI ${(tti / 1000).toFixed(1)}초로 권장(3.8초)보다 ${Math.round((tti - 3800) / 3800 * 100)}% 느림 — 인터랙션 가능 시점 개선 필요`); score -= 20; }
+      if (tti > 7300) { issues.push(`TTI ${(tti / 1000).toFixed(1)}초로 권장(7.3초)보다 ${Math.round((tti - 7300) / 7300 * 100)}% 느림 — 페이지 인터랙션 심각하게 지연`); score -= 50; }
+      else if (tti > 3800) { issues.push(`TTI ${(tti / 1000).toFixed(1)}초로 권장(3.8초)보다 ${Math.round((tti - 3800) / 3800 * 100)}% 느림 — 인터랙션 가능 시점 개선 필요`); score -= 25; }
 
       return {
         id: '1.2',
@@ -130,9 +130,18 @@ export const performanceCheckers: CheckerDefinition[] = [
         }
       });
 
-      if (totalImgs > 3 && lazyCount / totalImgs < 0.5) {
-        issues.push(`lazy loading 적용률 ${lazyCount}/${totalImgs}개(${Math.round(lazyCount / totalImgs * 100)}%) — 미적용 이미지 ${totalImgs - lazyCount}개`);
-        score -= 20;
+      if (totalImgs > 3) {
+        const lazyRate = lazyCount / totalImgs;
+        if (lazyRate === 0) {
+          issues.push(`lazy loading 적용률 ${lazyCount}/${totalImgs}개(0%) — 미적용 이미지 ${totalImgs - lazyCount}개`);
+          score -= 40;
+        } else if (lazyRate < 0.3) {
+          issues.push(`lazy loading 적용률 ${lazyCount}/${totalImgs}개(${Math.round(lazyRate * 100)}%) — 미적용 이미지 ${totalImgs - lazyCount}개`);
+          score -= 30;
+        } else if (lazyRate < 0.5) {
+          issues.push(`lazy loading 적용률 ${lazyCount}/${totalImgs}개(${Math.round(lazyRate * 100)}%) — 미적용 이미지 ${totalImgs - lazyCount}개`);
+          score -= 20;
+        }
       }
 
       const detailParts: string[] = [];
