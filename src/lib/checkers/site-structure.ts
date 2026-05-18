@@ -164,6 +164,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
             method: 'HEAD',
             headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
             redirect: 'follow',
+            signal: AbortSignal.timeout(5000),
           });
           if (res.status >= 400) {
             broken++;

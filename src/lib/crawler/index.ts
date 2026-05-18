@@ -88,6 +88,7 @@ async function fetchText(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
     return res.text();

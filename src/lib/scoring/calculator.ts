@@ -99,12 +99,16 @@ function getCategoryFromId(id: string): string {
 }
 
 function deduplicateById(results: CheckResult[]): CheckResult[] {
-  const seen = new Map<string, CheckResult>();
+  const grouped = new Map<string, CheckResult[]>();
   for (const r of results) {
-    const existing = seen.get(r.id);
-    if (!existing || r.score < existing.score) {
-      seen.set(r.id, r);
-    }
+    if (!grouped.has(r.id)) grouped.set(r.id, []);
+    grouped.get(r.id)!.push(r);
   }
-  return Array.from(seen.values());
+
+  return Array.from(grouped.entries()).map(([, items]) => {
+    if (items.length === 1) return items[0];
+    const avgScore = Math.round(items.reduce((s, r) => s + r.score, 0) / items.length);
+    const worst = items.reduce((w, r) => (r.score < w.score ? r : w));
+    return { ...worst, score: avgScore };
+  });
 }
