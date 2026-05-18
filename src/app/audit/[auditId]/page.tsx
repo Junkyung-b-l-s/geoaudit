@@ -17,7 +17,7 @@ export default function AuditPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/report/${auditId}`);
-      if (res.ok) {
+      if (res.status === 200) {
         const data: AuditReport = await res.json();
         setReport(data);
 
