@@ -397,9 +397,12 @@ const LAYER_FILTERS: { value: LayerFilter; label: string; color: string; bg: str
 ];
 
 export default function ReportOverview({ report }: { report: AuditReport }) {
+  const categories = report.categories ?? [];
+  const strategies = report.strategies ?? [];
+  const pageScores = report.pageScores ?? [];
   const sortByName = (a: CategoryScore, b: CategoryScore) => a.name.localeCompare(b.name, 'ko');
-  const seoCats = report.categories.filter((c) => SEO_CATS.has(c.id)).sort(sortByName);
-  const geoCats = report.categories.filter((c) => GEO_CATS.has(c.id)).sort(sortByName);
+  const seoCats = categories.filter((c) => SEO_CATS.has(c.id)).sort(sortByName);
+  const geoCats = categories.filter((c) => GEO_CATS.has(c.id)).sort(sortByName);
   const sortedCategories = [...seoCats, ...geoCats];
 
   const avg = (cats: CategoryScore[]) => cats.length ? Math.round(cats.reduce((s, c) => s + c.score, 0) / cats.length) : 0;
@@ -409,10 +412,13 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [strategyFilter, setStrategyFilter] = useState<LayerFilter>('all');
 
-  const allItems = report.categories.flatMap((c) => c.items);
+  const allItems = categories.flatMap((c) => c.items);
   const passCount = allItems.filter((i) => i.status === 'pass').length;
   const failCount = allItems.filter((i) => i.status === 'fail').length;
   const warnCount = allItems.filter((i) => i.status === 'warning').length;
+  const totalPages = report.totalPages ?? 0;
+  const totalChecks = report.totalChecks ?? 0;
+  const overallScore = report.overallScore ?? 0;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-10">
@@ -425,7 +431,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
         </div>
         <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{report.url}</h1>
         <p className="text-xs" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
-          {new Date(report.createdAt).toLocaleString('ko-KR')} · {report.totalPages}개 페이지 · {report.totalChecks}개 항목
+          {new Date(report.createdAt).toLocaleString('ko-KR')} · {totalPages}개 페이지 · {totalChecks}개 항목
         </p>
         <Link href={`/audit/${report.auditId}/executive`}
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-colors mt-2"
@@ -442,7 +448,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
         {/* Scores row */}
         <div className="p-8">
           <div className="flex flex-col md:flex-row items-center justify-center gap-10">
-            <ScoreRing score={report.overallScore} size={140} label="종합 점수" />
+            <ScoreRing score={overallScore} size={140} label="종합 점수" />
             <div className="flex gap-8">
               <ScoreRing score={seoScore} size={90} label="SEO 기반" sublabel={scoreLabel(seoScore)} />
               <ScoreRing score={geoScore} size={90} label="GEO 최적화" sublabel={scoreLabel(geoScore)} />
@@ -452,7 +458,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
           {/* Stats */}
           <div className="mt-8 flex flex-col gap-3">
             <div className="flex items-center justify-center gap-2 text-xs" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
-              <span className="font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{report.totalPages}</span>
+              <span className="font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{totalPages}</span>
               <span>페이지 분석</span>
               <span style={{ color: 'var(--color-border)' }}>·</span>
               <span className="font-bold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>{allItems.length}</span>
@@ -478,16 +484,16 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
         {/* Summary analysis */}
         <div className="px-8 py-6" style={{
           borderTop: '1px solid var(--color-border)',
-          background: report.overallScore < 50
+          background: overallScore < 50
             ? 'linear-gradient(135deg, rgba(239,68,68,0.03) 0%, rgba(249,115,22,0.02) 100%)'
-            : report.overallScore < 80
+            : overallScore < 80
             ? 'linear-gradient(135deg, rgba(234,179,8,0.03) 0%, rgba(0,53,218,0.02) 100%)'
             : 'linear-gradient(135deg, rgba(16,185,129,0.03) 0%, rgba(0,53,218,0.02) 100%)',
         }}>
           <div className="flex items-center gap-2 mb-3">
-            {report.overallScore < 50 && <span className="w-2 h-2 rounded-full bg-[#ef4444]" />}
-            {report.overallScore >= 50 && report.overallScore < 80 && <span className="w-2 h-2 rounded-full bg-[#eab308]" />}
-            {report.overallScore >= 80 && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
+            {overallScore < 50 && <span className="w-2 h-2 rounded-full bg-[#ef4444]" />}
+            {overallScore >= 50 && overallScore < 80 && <span className="w-2 h-2 rounded-full bg-[#eab308]" />}
+            {overallScore >= 80 && <span className="w-2 h-2 rounded-full bg-[#10b981]" />}
             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
               진단 요약
             </span>
@@ -496,7 +502,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
             <p className="text-xs leading-relaxed mb-3" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
               AI 모델은 학습 데이터에 포함된 콘텐츠를 반복적으로 재학습합니다. 일찍 준비된 사이트일수록 더 많은 학습 사이클에 포함되어 인용 빈도가 복리로 증가합니다.
             </p>
-            {report.overallScore >= 80 ? (<>
+            {overallScore >= 80 ? (<>
               <p>
                 SEO 기반({seoScore}점)과 GEO 최적화({geoScore}점)가 고르게 갖춰져 있어, AI 모델이 브랜드 정보를 정확히 인용할 수 있는 기술 환경이 마련되어 있습니다.
                 이미 AI 학습 데이터에 양질의 콘텐츠가 축적되고 있을 가능성이 높으며, 이 상태를 유지하면 인용 빈도가 시간이 지날수록 자연스럽게 늘어납니다.
@@ -505,7 +511,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
                 전체 {allItems.length}개 항목 중 <strong style={{ color: 'var(--color-text-primary)' }}>{passCount}개({Math.round(passCount / allItems.length * 100)}%)</strong>가 기준을 충족합니다.
                 나머지 {failCount}개 항목을 추가 개선하면 AI 검색 노출 범위를 더 넓힐 수 있습니다.
               </p>
-            </>) : report.overallScore >= 50 ? (<>
+            </>) : overallScore >= 50 ? (<>
               <p>
                 SEO 기반({seoScore}점)은 갖추고 있으나, AI 모델이 콘텐츠를 정확히 이해하고 인용하기 위한 <strong style={{ color: '#eab308' }}>GEO 최적화({geoScore}점)에 개선 여지</strong>가 있습니다.
                 GEO 준비가 늦어질수록 AI 학습 사이클에서 누락되는 기간이 길어지고, 그만큼 인용 데이터의 축적이 지연됩니다.
@@ -536,14 +542,14 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
             <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>분석 대상 URL</span>
-            <span className="text-[10px] font-medium rounded-full px-2 py-0.5" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-tertiary)' }}>{report.pageScores.length}개</span>
+            <span className="text-[10px] font-medium rounded-full px-2 py-0.5" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-tertiary)' }}>{pageScores.length}개</span>
           </div>
           <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--color-text-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </summary>
         <div className="px-5 pb-4 space-y-1">
-          {report.pageScores.map((ps, i) => (
+          {pageScores.map((ps, i) => (
             <div key={i} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: 'var(--color-bg-elevated)' }}>
               <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ fontFamily: 'var(--font-inter)', color: scoreColor(ps.score) }}>{ps.score}</span>
               <a href={ps.url} target="_blank" rel="noopener noreferrer" className="text-xs truncate hover:underline" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-secondary)' }}>{ps.url}</a>
@@ -584,10 +590,10 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
       {geoCats.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i + 1} />)}
 
       {/* GEO Strategy cards */}
-      {report.strategies && report.strategies.length > 0 && (() => {
+      {strategies.length > 0 && (() => {
         const filteredStrategies = strategyFilter === 'all'
-          ? report.strategies
-          : report.strategies.filter((s) => {
+          ? strategies
+          : strategies.filter((s) => {
               const domains = getStrategyDomains(s.relatedChecks);
               if (strategyFilter === 'seo') return domains.includes('SEO');
               if (strategyFilter === 'geo') return domains.includes('GEO');
@@ -627,7 +633,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredStrategies.map((s) => <StrategyCard key={s.id} s={s} index={report.strategies.indexOf(s) + 1} />)}
+            {filteredStrategies.map((s) => <StrategyCard key={s.id} s={s} index={strategies.indexOf(s) + 1} />)}
           </div>
         </div>
         );

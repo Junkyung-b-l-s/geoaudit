@@ -106,16 +106,20 @@ export default function ExecutiveReport() {
     );
   }
 
-  const seoCats = report.categories.filter((c) => ['performance', 'metadata', 'structure'].includes(c.id));
-  const geoCats = report.categories.filter((c) => ['content', 'crawling', 'authority'].includes(c.id));
+  const categories = report.categories ?? [];
+  const strategies = report.strategies ?? [];
+  const seoCats = categories.filter((c) => ['performance', 'metadata', 'structure'].includes(c.id));
+  const geoCats = categories.filter((c) => ['content', 'crawling', 'authority'].includes(c.id));
   const avg = (cats: CategoryScore[]) => cats.length ? Math.round(cats.reduce((s, c) => s + c.score, 0) / cats.length) : 0;
   const seoScore = avg(seoCats);
   const geoScore = avg(geoCats);
 
-  const allItems = report.categories.flatMap((c) => c.items);
+  const allItems = categories.flatMap((c) => c.items);
   const passCount = allItems.filter((i) => i.status === 'pass').length;
   const failCount = allItems.filter((i) => i.status === 'fail').length;
   const criticalFails = allItems.filter((i) => i.status === 'fail' && i.severity === 'critical');
+  const overallScore = report.overallScore ?? 0;
+  const totalPages = report.totalPages ?? 0;
 
   const host = (() => { try { return new URL(report.url).hostname; } catch { return report.url; } })();
 
@@ -163,7 +167,7 @@ export default function ExecutiveReport() {
         {/* ── Score overview ── */}
         <div className="rounded-2xl p-8" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
           <div className="flex flex-col md:flex-row items-center justify-center gap-10">
-            <ScoreGauge score={report.overallScore} size={160} label="종합 점수" />
+            <ScoreGauge score={overallScore} size={160} label="종합 점수" />
             <div className="flex gap-8">
               <ScoreGauge score={seoScore} size={100} label="SEO 기반" />
               <ScoreGauge score={geoScore} size={100} label="GEO 최적화" />
@@ -173,8 +177,8 @@ export default function ExecutiveReport() {
 
         {/* ── Key numbers ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard value={`${report.totalPages}`} label="분석 페이지" />
-          <StatCard value={`${passCount}/${allItems.length}`} label="통과 항목" sub={`${Math.round(passCount / allItems.length * 100)}% 통과율`} />
+          <StatCard value={`${totalPages}`} label="분석 페이지" />
+          <StatCard value={`${passCount}/${allItems.length}`} label="통과 항목" sub={allItems.length > 0 ? `${Math.round(passCount / allItems.length * 100)}% 통과율` : '0% 통과율'} />
           <StatCard value={`${failCount}`} label="미충족 항목" sub={criticalFails.length > 0 ? `Critical ${criticalFails.length}개` : 'Critical 없음'} />
           <StatCard
             value={report.lighthouseData ? `${report.lighthouseData.performanceScore}` : '-'}
@@ -195,14 +199,14 @@ export default function ExecutiveReport() {
             <p className="text-xs leading-relaxed" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
               AI 모델은 학습 데이터에 포함된 콘텐츠를 반복적으로 재학습합니다. GEO/SEO가 일찍 준비된 사이트일수록 더 많은 학습 사이클에 포함되어, 인용 빈도와 정확도가 복리로 증가합니다.
             </p>
-            {report.overallScore >= 80 ? (<>
+            {overallScore >= 80 ? (<>
               <p>
-                <strong style={{ color: 'var(--color-text-primary)' }}>{host}</strong>는 SEO 기반({seoScore}점)과 GEO 최적화({geoScore}점)가 고르게 갖춰져 있습니다. 전체 {allItems.length}개 항목 중 {passCount}개({Math.round(passCount / allItems.length * 100)}%)가 기준을 충족하고 있어, AI 학습 데이터에 양질의 브랜드 콘텐츠가 이미 축적되고 있을 가능성이 높습니다.
+                <strong style={{ color: 'var(--color-text-primary)' }}>{host}</strong>는 SEO 기반({seoScore}점)과 GEO 최적화({geoScore}점)가 고르게 갖춰져 있습니다. 전체 {allItems.length}개 항목 중 {passCount}개({allItems.length > 0 ? Math.round(passCount / allItems.length * 100) : 0}%)가 기준을 충족하고 있어, AI 학습 데이터에 양질의 브랜드 콘텐츠가 이미 축적되고 있을 가능성이 높습니다.
               </p>
               <p>
                 이 상태를 유지하면 AI 인용 빈도가 시간이 지날수록 자연스럽게 늘어납니다. 나머지 {failCount}개 항목을 추가 개선하면 노출 범위를 더 넓힐 수 있습니다.
               </p>
-            </>) : report.overallScore >= 50 ? (<>
+            </>) : overallScore >= 50 ? (<>
               <p>
                 <strong style={{ color: 'var(--color-text-primary)' }}>{host}</strong>는 기본적인 SEO 기반({seoScore}점)은 갖추고 있으나, AI 모델이 콘텐츠를 정확히 이해하고 인용하기 위한 <strong style={{ color: 'var(--color-text-primary)' }}>GEO 최적화({geoScore}점)에 개선 여지</strong>가 있습니다.
               </p>
@@ -226,7 +230,7 @@ export default function ExecutiveReport() {
             영역별 진단 결과
           </h2>
           <div className="space-y-6">
-            {report.categories.map((cat) => (
+            {categories.map((cat) => (
               <div key={cat.id}>
                 <CategoryBar cat={cat} />
                 {cat.insight && (
@@ -240,13 +244,13 @@ export default function ExecutiveReport() {
         </div>
 
         {/* ── Top priorities ── */}
-        {report.strategies && report.strategies.length > 0 && (
+        {strategies.length > 0 && (
           <div className="rounded-xl p-6" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <h2 className="text-sm font-semibold mb-5" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
               우선 조치 사항
             </h2>
             <div className="space-y-4">
-              {report.strategies.slice(0, 4).map((s, i) => (
+              {strategies.slice(0, 4).map((s, i) => (
                   <div key={s.id} className="flex gap-4">
                     <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
                       style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-elevated)' }}>
