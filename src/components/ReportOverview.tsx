@@ -90,14 +90,88 @@ function SectionHeading({ title, layer, desc }: { title: string; layer: 'seo' | 
   );
 }
 
+/* ── Strip leading number from category name (e.g. "1. 성능 점검" → "성능 점검") ── */
+function stripCatNumber(name: string): string {
+  return name.replace(/^\d+\.\s*/, '');
+}
+
 /* ── Category card with insight ── */
-function CategoryCard({ cat }: { cat: CategoryScore }) {
+function CategoryCard({ cat, index, psiData }: { cat: CategoryScore; index: number; psiData?: LighthouseData }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
       <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{cat.name}</h3>
+        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
+          {index}. {stripCatNumber(cat.name)}
+        </h3>
         <span className="text-lg font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: scoreColor(cat.score) }}>{cat.score}</span>
       </div>
+
+      {psiData && (
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
+            {[
+              { label: 'FCP', value: (psiData.fcp / 1000).toFixed(1), unit: '초' },
+              { label: 'LCP', value: (psiData.lcp / 1000).toFixed(1), unit: '초' },
+              { label: 'TBT', value: `${Math.round(psiData.tbt)}`, unit: 'ms' },
+              { label: 'CLS', value: psiData.cls.toFixed(3), unit: '' },
+              { label: 'SI', value: (psiData.si / 1000).toFixed(1), unit: '초' },
+              { label: 'TTI', value: (psiData.tti / 1000).toFixed(1), unit: '초' },
+            ].map((m) => (
+              <div key={m.label} className="text-center">
+                <span className="block text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>{m.label}</span>
+                <span className="text-sm font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
+                  {m.value}<span className="text-xs font-normal" style={{ color: 'var(--color-text-tertiary)' }}>{m.unit}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {psiData.crux && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+                  실제 사용자 데이터 (CrUX, 최근 28일)
+                </span>
+                {psiData.crux.overallCategory && (
+                  <span className="rounded-full px-2 py-0.5 text-[9px] font-semibold" style={{
+                    fontFamily: 'var(--font-inter)',
+                    background: psiData.crux.overallCategory === 'FAST' ? 'rgba(16,185,129,0.1)' : 'rgba(234,179,8,0.1)',
+                    color: psiData.crux.overallCategory === 'FAST' ? '#10b981' : '#eab308',
+                  }}>코어 웹 바이탈 {psiData.crux.overallCategory === 'FAST' ? '통과' : '미달'}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <CruxBadge metric={psiData.crux.lcp} label="LCP" unit="s" />
+                <CruxBadge metric={psiData.crux.inp} label="INP" unit="ms" />
+                <CruxBadge metric={psiData.crux.cls} label="CLS" unit="cls" />
+                <CruxBadge metric={psiData.crux.fcp} label="FCP" unit="s" />
+                <CruxBadge metric={psiData.crux.ttfb} label="TTFB" unit="ms" />
+              </div>
+            </div>
+          )}
+
+          {psiData.diagnostics.length > 0 && (
+            <details className="group mt-4">
+              <summary className="flex items-center gap-2 cursor-pointer text-xs font-semibold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+                <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                진단 항목 {psiData.diagnostics.length}개
+              </summary>
+              <div className="mt-3 space-y-1.5">
+                {psiData.diagnostics.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: 'var(--color-bg)' }}>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: d.score === 0 ? '#ef4444' : '#eab308' }} />
+                    <span className="text-xs flex-1" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-secondary)' }}>{d.title}</span>
+                    {d.savings && <span className="text-[9px] font-medium shrink-0 rounded-full px-1.5 py-0.5" style={{ background: 'rgba(234,179,8,0.1)', color: '#eab308' }}>{d.savings}</span>}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row">
         {cat.insight && (
           <div className="md:w-1/2 p-5 flex flex-col gap-3" style={{ borderRight: '1px solid var(--color-border)' }}>
@@ -323,8 +397,10 @@ const LAYER_FILTERS: { value: LayerFilter; label: string; color: string; bg: str
 ];
 
 export default function ReportOverview({ report }: { report: AuditReport }) {
-  const seoCats = report.categories.filter((c) => SEO_CATS.has(c.id));
-  const geoCats = report.categories.filter((c) => GEO_CATS.has(c.id));
+  const sortByName = (a: CategoryScore, b: CategoryScore) => a.name.localeCompare(b.name, 'ko');
+  const seoCats = report.categories.filter((c) => SEO_CATS.has(c.id)).sort(sortByName);
+  const geoCats = report.categories.filter((c) => GEO_CATS.has(c.id)).sort(sortByName);
+  const sortedCategories = [...seoCats, ...geoCats];
 
   const avg = (cats: CategoryScore[]) => cats.length ? Math.round(cats.reduce((s, c) => s + c.score, 0) / cats.length) : 0;
   const seoScore = avg(seoCats);
@@ -485,11 +561,15 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
         desc="AI 인용의 전제 조건 — 성능, 메타데이터, 사이트 구조가 충족되어야 GEO 최적화가 의미를 가집니다"
       />
 
-      {/* PSI */}
-      {report.lighthouseData && <PsiCard data={report.lighthouseData} />}
-
       {/* SEO category cards */}
-      {seoCats.map((cat) => <CategoryCard key={cat.id} cat={cat} />)}
+      {seoCats.map((cat, i) => (
+        <CategoryCard
+          key={cat.id}
+          cat={cat}
+          index={i + 1}
+          psiData={cat.id === 'performance' ? report.lighthouseData : undefined}
+        />
+      ))}
 
       {/* ══════════════════════════════════════
          LAYER 2: GEO 최적화
@@ -501,7 +581,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
       />
 
       {/* GEO category cards */}
-      {geoCats.map((cat) => <CategoryCard key={cat.id} cat={cat} />)}
+      {geoCats.map((cat, i) => <CategoryCard key={cat.id} cat={cat} index={i + 1} />)}
 
       {/* GEO Strategy cards */}
       {report.strategies && report.strategies.length > 0 && (() => {
@@ -582,7 +662,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
           </div>
         </div>
 
-        {report.categories.map((cat) => {
+        {sortedCategories.map((cat, catIdx) => {
           const filtered = layerFilter === 'all' ? cat.items : cat.items.filter((i) => i.layer === layerFilter);
           if (filtered.length === 0) return null;
           return (
@@ -590,7 +670,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
             style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
             <summary className="flex items-center justify-between px-5 py-4 cursor-pointer" style={{ fontFamily: 'var(--font-inter)' }}>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{catIdx + 1}. {stripCatNumber(cat.name)}</span>
                 {layerFilter !== 'all' && (
                   <span className="text-[10px] font-medium rounded-full px-1.5 py-0.5" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-tertiary)' }}>
                     {filtered.length}/{cat.items.length}

@@ -104,14 +104,10 @@ export const crawlingCheckers: CheckerDefinition[] = [
 
       const blockedBots: string[] = [];
       const allowedBots: string[] = [];
-      const txt = siteInfo.robotsTxt;
+      const robots = robotsParser(`${siteInfo.baseUrl}/robots.txt`, siteInfo.robotsTxt);
 
       for (const bot of AI_BOTS) {
-        const regex = new RegExp(
-          `User-agent:\\s*${bot.replace('-', '\\-')}[\\s\\S]*?Disallow:\\s*/`,
-          'i'
-        );
-        if (regex.test(txt)) {
+        if (robots.isAllowed(siteInfo.baseUrl + '/', bot) === false) {
           blockedBots.push(bot);
         } else {
           allowedBots.push(bot);

@@ -27,8 +27,8 @@ function saveHistoryEntry(report: AuditReport): void {
   try {
     ensureReportsDir();
     const history = getServerHistory().filter((h) => h.auditId !== report.auditId);
-    const geoCategories = ['crawling-indexing', 'content-structure', 'authority'];
-    const seoCategories = ['metadata', 'performance', 'site-structure'];
+    const geoCategories = ['crawling', 'content', 'authority'];
+    const seoCategories = ['metadata', 'performance', 'structure'];
     const geoScore = Math.round(
       report.categories.filter((c) => geoCategories.includes(c.id)).reduce((s, c) => s + c.score, 0) /
       Math.max(report.categories.filter((c) => geoCategories.includes(c.id)).length, 1)

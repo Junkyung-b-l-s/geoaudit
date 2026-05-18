@@ -118,6 +118,7 @@ export async function runAudit(auditId: string, config: AuditConfig, onProgress:
         const label = FRIENDLY_LABELS[checker.id] || checker.title;
         emit('page-checks', progress, label);
         const result = await checker.checker({ page: pages[i], siteInfo, allPages: pages, lighthouseData });
+        result.pageUrl = pages[i].url;
         results.push(result);
       }
     }

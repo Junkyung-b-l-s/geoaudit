@@ -13,6 +13,7 @@ export interface CheckResult {
   score: number; // 0-100
   llmUsed?: boolean;
   layer?: CheckLayer;
+  pageUrl?: string;
 }
 
 export interface ParsedPage {

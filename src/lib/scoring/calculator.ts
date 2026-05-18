@@ -58,7 +58,7 @@ function buildCategoryScores(results: CheckResult[]): CategoryScore[] {
 
 function buildPageScores(results: CheckResult[], pageUrls: string[]): PageScore[] {
   return pageUrls.map((url) => {
-    const pageResults = results.filter((r) => r.details?.includes(url));
+    const pageResults = results.filter((r) => r.pageUrl === url);
     return {
       url,
       score: pageResults.length > 0 ? weightedAverage(pageResults) : 0,
