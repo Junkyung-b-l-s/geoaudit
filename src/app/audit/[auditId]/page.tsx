@@ -34,10 +34,16 @@ export default function AuditPage() {
           totalPages: data.totalPages,
           createdAt: data.createdAt,
         });
+        return true;
       }
     } catch { /* retry on next render */ }
     setLoading(false);
+    return false;
   }, [auditId]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   const handleComplete = useCallback(() => {
     fetchReport();
