@@ -123,13 +123,15 @@ export async function runLlmChecks(
   siteInfo: SiteInfo,
   onProgress?: (done: number, total: number) => void
 ): Promise<CheckResult[]> {
+  let done = 0;
   onProgress?.(0, 4);
+  const tick = <T>(r: T): T => { onProgress?.(++done, 4); return r; };
 
   const [kwResults, metaResults, urlResults, citationResults] = await Promise.all([
-    runKeywordAlignment(pages).then((r) => { onProgress?.(1, 4); return r; }),
-    runMetaQuality(pages).then((r) => { onProgress?.(2, 4); return r; }),
-    runUrlStructure(pages).then((r) => { onProgress?.(3, 4); return r; }),
-    runAiCitation(pages, siteInfo).then((r) => { onProgress?.(4, 4); return r; }),
+    runKeywordAlignment(pages).then(tick),
+    runMetaQuality(pages).then(tick),
+    runUrlStructure(pages).then(tick),
+    runAiCitation(pages, siteInfo).then(tick),
   ]);
 
   return [...kwResults, ...metaResults, ...urlResults, ...citationResults];

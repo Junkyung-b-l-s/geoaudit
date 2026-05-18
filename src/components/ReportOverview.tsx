@@ -108,6 +108,11 @@ function CategoryCard({ cat, index, psiData }: { cat: CategoryScore; index: numb
 
       {psiData && (
         <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+              Lighthouse 시뮬레이션 (Lab Data)
+            </span>
+          </div>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4">
             {[
               { label: 'FCP', value: (psiData.fcp / 1000).toFixed(1), unit: '초' },
@@ -126,7 +131,7 @@ function CategoryCard({ cat, index, psiData }: { cat: CategoryScore; index: numb
             ))}
           </div>
 
-          {psiData.crux && (
+          {psiData.crux ? (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
@@ -147,6 +152,15 @@ function CategoryCard({ cat, index, psiData }: { cat: CategoryScore; index: numb
                 <CruxBadge metric={psiData.crux.fcp} label="FCP" unit="s" />
                 <CruxBadge metric={psiData.crux.ttfb} label="TTFB" unit="ms" />
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+                실제 사용자 데이터 (CrUX, 최근 28일)
+              </span>
+              <span className="text-[10px]" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+                — Chrome 사용자 트래픽이 충분하지 않아 데이터가 수집되지 않았습니다
+              </span>
             </div>
           )}
 
@@ -251,6 +265,11 @@ function PsiCard({ data }: { data: LighthouseData }) {
       </div>
 
       {/* Lab metrics */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+          Lighthouse 시뮬레이션 (Lab Data)
+        </span>
+      </div>
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-5">
         {[
           { label: 'FCP', value: (data.fcp / 1000).toFixed(1), unit: '초' },
@@ -319,20 +338,25 @@ function PsiCard({ data }: { data: LighthouseData }) {
 }
 
 /* ── Strategy card ── */
-function getStrategyDomains(relatedChecks: string[]): ('SEO' | 'GEO')[] {
-  const seoIds = new Set(['1', '3', '5']);
-  const geoIds = new Set(['2', '4', '6']);
-  let hasSeo = false;
-  let hasGeo = false;
-  for (const id of relatedChecks) {
-    const cat = id.split('.')[0];
-    if (seoIds.has(cat)) hasSeo = true;
-    if (geoIds.has(cat)) hasGeo = true;
-  }
-  const domains: ('SEO' | 'GEO')[] = [];
-  if (hasGeo) domains.push('GEO');
-  if (hasSeo) domains.push('SEO');
-  return domains.length ? domains : ['GEO'];
+const STRATEGY_DOMAINS: Record<string, ('SEO' | 'GEO')[]> = {
+  'structured-data': ['SEO', 'GEO'],
+  'ai-crawler-access': ['GEO'],
+  'semantic-structure': ['SEO', 'GEO'],
+  'freshness-signals': ['SEO', 'GEO'],
+  'performance-rendering': ['SEO'],
+  'meta-quality': ['SEO'],
+  'discoverability': ['SEO', 'GEO'],
+  'multimodal-ready': ['SEO', 'GEO'],
+  'eeat-authority': ['GEO'],
+  'content-depth': ['GEO'],
+  'content-freshness': ['GEO'],
+  'url-technical-hygiene': ['SEO'],
+  'internal-linking': ['SEO'],
+  'maintain-excellence': ['SEO', 'GEO'],
+};
+
+function getStrategyDomains(strategyId: string): ('SEO' | 'GEO')[] {
+  return STRATEGY_DOMAINS[strategyId] || ['GEO'];
 }
 
 function StrategyCard({ s, index }: { s: AuditReport['strategies'][0]; index: number }) {
@@ -342,7 +366,7 @@ function StrategyCard({ s, index }: { s: AuditReport['strategies'][0]; index: nu
     medium: { dot: 'var(--color-primary)', border: 'var(--color-border)', bg: 'var(--color-bg-card)' },
   };
   const p = ps[s.priority] || ps.medium;
-  const domains = getStrategyDomains(s.relatedChecks);
+  const domains = getStrategyDomains(s.id);
 
   return (
     <div className="rounded-xl p-5 flex flex-col gap-3" style={{ background: p.bg, border: `1px solid ${p.border}` }}>
@@ -409,7 +433,6 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
   const seoScore = avg(seoCats);
   const geoScore = avg(geoCats);
 
-  const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [strategyFilter, setStrategyFilter] = useState<LayerFilter>('all');
 
   const allItems = categories.flatMap((c) => c.items);
@@ -594,7 +617,7 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
         const filteredStrategies = strategyFilter === 'all'
           ? strategies
           : strategies.filter((s) => {
-              const domains = getStrategyDomains(s.relatedChecks);
+              const domains = getStrategyDomains(s.id);
               if (strategyFilter === 'seo') return domains.includes('SEO');
               if (strategyFilter === 'geo') return domains.includes('GEO');
               return domains.includes('SEO') && domains.includes('GEO');
@@ -642,108 +665,94 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
       {/* ══════════════════════════════════════
          상세 결과 (전 항목)
          ══════════════════════════════════════ */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>상세 결과</h2>
-          <div className="flex gap-1.5">
-            {LAYER_FILTERS.map((f) => {
-              const active = layerFilter === f.value;
-              return (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => setLayerFilter(f.value)}
-                  className="rounded-full px-3 py-1 text-[11px] font-semibold transition-all cursor-pointer"
-                  style={{
-                    fontFamily: 'var(--font-inter)',
-                    color: active ? f.color : 'var(--color-text-tertiary)',
-                    background: active ? f.bg : 'transparent',
-                    border: `1px solid ${active ? f.border : 'var(--color-border)'}`,
-                  }}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
+      {[
+        { label: 'SEO 기반 상세 결과', layer: 'seo' as const, cats: seoCats, layerStyle: { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }, badge: 'SEO Base' },
+        { label: 'GEO 최적화 상세 결과', layer: 'geo' as const, cats: geoCats, layerStyle: { color: 'var(--color-primary)', bg: 'rgba(0,53,218,0.08)', border: '1px solid rgba(0,53,218,0.15)' }, badge: 'GEO Layer' },
+      ].map((section) => (
+        <div key={section.layer} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{section.label}</h2>
+            <span className="text-[9px] font-semibold uppercase tracking-wider rounded-full px-2 py-0.5"
+              style={{ fontFamily: 'var(--font-inter)', color: section.layerStyle.color, background: section.layerStyle.bg, border: section.layerStyle.border }}>
+              {section.badge}
+            </span>
           </div>
-        </div>
 
-        {sortedCategories.map((cat, catIdx) => {
-          const filtered = layerFilter === 'all' ? cat.items : cat.items.filter((i) => i.layer === layerFilter);
-          if (filtered.length === 0) return null;
-          return (
-          <details key={cat.id} className="group rounded-xl overflow-hidden"
-            style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-            <summary className="flex items-center justify-between px-5 py-4 cursor-pointer" style={{ fontFamily: 'var(--font-inter)' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{catIdx + 1}. {stripCatNumber(cat.name)}</span>
-                {layerFilter !== 'all' && (
+          {section.cats.map((cat, catIdx) => {
+            const filtered = cat.items;
+            if (filtered.length === 0) return null;
+            return (
+            <details key={cat.id} className="group rounded-xl overflow-hidden"
+              style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+              <summary className="flex items-center justify-between px-5 py-4 cursor-pointer" style={{ fontFamily: 'var(--font-inter)' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{catIdx + 1}. {stripCatNumber(cat.name)}</span>
                   <span className="text-[10px] font-medium rounded-full px-1.5 py-0.5" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-tertiary)' }}>
-                    {filtered.length}/{cat.items.length}
+                    {cat.items.length}개 항목
                   </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold tabular-nums" style={{ color: scoreColor(cat.score) }}>{cat.score}점</span>
-                <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--color-text-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </summary>
-            <div className="px-5 pb-5 space-y-3">
-              {filtered.map((item) => (
-                <div key={item.id} className="rounded-lg p-4" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <StatusBadge status={item.status} />
-                    <SeverityDot severity={item.severity} />
-                    <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{item.id} {item.title}</span>
-                    {item.llmUsed && (
-                      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-                        style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontFamily: 'var(--font-inter)' }}>AI</span>
-                    )}
-                    {item.layer && (
-                      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase"
-                        style={{
-                          fontFamily: 'var(--font-inter)',
-                          color: item.layer === 'geo' ? '#0035DA' : item.layer === 'seo' ? '#10b981' : '#8b5cf6',
-                          background: item.layer === 'geo' ? 'rgba(0,53,218,0.08)' : item.layer === 'seo' ? 'rgba(16,185,129,0.08)' : 'rgba(139,92,246,0.08)',
-                        }}>
-                        {item.layer === 'both' ? 'SEO+GEO' : item.layer.toUpperCase()}
-                      </span>
-                    )}
-                    <span className="ml-auto text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score) }}>
-                      {item.score}점
-                    </span>
-                  </div>
-                  <p className="text-sm leading-relaxed" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-secondary)' }}>{item.description}</p>
-                  {item.details && (
-                    <div className="mt-2 rounded-lg p-3 overflow-x-auto" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        {item.details.split(/[,\n]/).map((part, i) => {
-                          const trimmed = part.trim();
-                          if (!trimmed) return null;
-                          const [key, ...rest] = trimmed.split(':');
-                          const val = rest.join(':').trim();
-                          if (val) {
-                            return (
-                              <div key={i} className="flex items-baseline gap-1.5">
-                                <span className="text-[10px] font-semibold uppercase" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>{key.trim()}</span>
-                                <span className="text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-secondary)' }}>{val}</span>
-                              </div>
-                            );
-                          }
-                          return <span key={i} className="text-xs" style={{ fontFamily: 'var(--font-geist-mono, monospace)', color: 'var(--color-text-tertiary)' }}>{trimmed}</span>;
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
-          </details>
-          );
-        })}
-      </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold tabular-nums" style={{ color: scoreColor(cat.score) }}>{cat.score}점</span>
+                  <svg className="w-4 h-4 transition-transform group-open:rotate-180" style={{ color: 'var(--color-text-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </summary>
+              <div className="px-5 pb-5 space-y-3">
+                {filtered.map((item) => (
+                  <div key={item.id} className="rounded-lg p-4" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <StatusBadge status={item.status} />
+                      <SeverityDot severity={item.severity} />
+                      <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{item.id} {item.title}</span>
+                      {item.llmUsed && (
+                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                          style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontFamily: 'var(--font-inter)' }}>AI</span>
+                      )}
+                      {item.layer && (
+                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase"
+                          style={{
+                            fontFamily: 'var(--font-inter)',
+                            color: item.layer === 'geo' ? '#0035DA' : item.layer === 'seo' ? '#10b981' : '#8b5cf6',
+                            background: item.layer === 'geo' ? 'rgba(0,53,218,0.08)' : item.layer === 'seo' ? 'rgba(16,185,129,0.08)' : 'rgba(139,92,246,0.08)',
+                          }}>
+                          {item.layer === 'both' ? 'SEO+GEO' : item.layer.toUpperCase()}
+                        </span>
+                      )}
+                      <span className="ml-auto text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score) }}>
+                        {item.score}점
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-secondary)' }}>{item.description}</p>
+                    {item.details && (
+                      <div className="mt-2 rounded-lg p-3 overflow-x-auto" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {item.details.split(/[,\n]/).map((part, i) => {
+                            const trimmed = part.trim();
+                            if (!trimmed) return null;
+                            const [key, ...rest] = trimmed.split(':');
+                            const val = rest.join(':').trim();
+                            if (val) {
+                              return (
+                                <div key={i} className="flex items-baseline gap-1.5">
+                                  <span className="text-[10px] font-semibold uppercase" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>{key.trim()}</span>
+                                  <span className="text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-secondary)' }}>{val}</span>
+                                </div>
+                              );
+                            }
+                            return <span key={i} className="text-xs" style={{ fontFamily: 'var(--font-geist-mono, monospace)', color: 'var(--color-text-tertiary)' }}>{trimmed}</span>;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+            );
+          })}
+        </div>
+      ))}
 
       {/* Export */}
       <div className="flex justify-center gap-3 print:hidden">

@@ -8,12 +8,15 @@ interface SidebarContextValue {
   open: () => void;
   close: () => void;
   toggle: () => void;
+  collapsed: boolean;
+  toggleCollapsed: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
 
@@ -25,6 +28,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
   const toggle = useCallback(() => setIsOpen((v) => !v), []);
+  const toggleCollapsed = useCallback(() => setCollapsed((v) => !v), []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -36,7 +40,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   }, [isOpen]);
 
   return (
-    <SidebarContext.Provider value={{ isOpen, open, close, toggle }}>
+    <SidebarContext.Provider value={{ isOpen, open, close, toggle, collapsed, toggleCollapsed }}>
       {children}
     </SidebarContext.Provider>
   );

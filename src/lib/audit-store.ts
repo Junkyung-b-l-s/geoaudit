@@ -50,6 +50,17 @@ function saveHistoryEntry(report: AuditReport): void {
   } catch { /* best effort */ }
 }
 
+export function removeServerHistoryEntry(auditId: string): boolean {
+  try {
+    const history = getServerHistory();
+    const filtered = history.filter((h) => h.auditId !== auditId);
+    if (filtered.length === history.length) return false;
+    ensureReportsDir();
+    writeFileSync(HISTORY_FILE, JSON.stringify(filtered), 'utf-8');
+    return true;
+  } catch { return false; }
+}
+
 export function clearServerHistory(): void {
   try {
     ensureReportsDir();
@@ -68,6 +79,7 @@ export function getAudit(id: string): AuditState | undefined {
 }
 
 export function getSavedReport(id: string): AuditReport | null {
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return null;
   try {
     const filePath = join(REPORTS_DIR, `${id}.json`);
     if (existsSync(filePath)) {

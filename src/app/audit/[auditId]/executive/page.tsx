@@ -56,15 +56,16 @@ function StatCard({ value, label, sub }: { value: string; label: string; sub?: s
   );
 }
 
-function CategoryBar({ cat }: { cat: CategoryScore }) {
+function CategoryBar({ cat, index }: { cat: CategoryScore; index?: number }) {
   const color = scoreColor(cat.score);
   const pass = cat.items.filter((i) => i.status === 'pass').length;
   const total = cat.items.length;
+  const displayName = cat.name.replace(/^\d+\.\s*/, '');
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{cat.name}</span>
+        <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{index != null ? `${index}. ` : ''}{displayName}</span>
         <span className="text-sm font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color }}>{cat.score}점</span>
       </div>
       <div className="w-full h-2 rounded-full" style={{ background: 'var(--color-bg-elevated)' }}>
@@ -87,7 +88,7 @@ export default function ExecutiveReport() {
 
   const fetchReport = useCallback(async () => {
     const res = await fetch(`/api/report/${auditId}`);
-    if (res.ok) setReport(await res.json());
+    if (res.status === 200) setReport(await res.json());
   }, [auditId]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
@@ -230,9 +231,9 @@ export default function ExecutiveReport() {
             영역별 진단 결과
           </h2>
           <div className="space-y-6">
-            {categories.map((cat) => (
+            {[...seoCats, ...geoCats].map((cat, i) => (
               <div key={cat.id}>
-                <CategoryBar cat={cat} />
+                <CategoryBar cat={cat} index={i + 1} />
                 {cat.insight && (
                   <p className="mt-2 text-xs leading-relaxed pl-1" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-tertiary)' }}>
                     {cat.insight.summary}
@@ -270,75 +271,49 @@ export default function ExecutiveReport() {
           </div>
         )}
 
-        {/* ── Top 5: Urgency × Importance ── */}
+        {/* ── Top 5: Urgency × Impact ── */}
         {(() => {
           const failed = allItems.filter((i) => i.status === 'fail' || i.status === 'warning');
-          const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2 };
-          const byUrgency = [...failed].sort((a, b) => (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9) || a.score - b.score).slice(0, 5);
-          const byImpact = [...failed].sort((a, b) => a.score - b.score || (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9)).slice(0, 5);
-          const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'high' ? '#f97316' : '#eab308';
-          const severityLabel = (s: string) => s === 'critical' ? 'Critical' : s === 'high' ? 'High' : 'Medium';
-
           if (failed.length === 0) return null;
 
-          return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="rounded-xl p-6" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-              <h2 className="text-sm font-semibold mb-1" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
-                시급도 Top 5
-              </h2>
-              <p className="text-[10px] mb-5" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
-                심각도(Critical → High → Medium) 기준 우선 조치 항목
-              </p>
-              <div className="space-y-3">
-                {byUrgency.map((item, i) => (
-                  <div key={item.id} className="flex items-start gap-3">
-                    <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
-                      style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-elevated)' }}>
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold truncate" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{item.title}</span>
-                        <span className="shrink-0 text-[9px] font-semibold rounded-full px-1.5 py-0.5"
-                          style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-elevated)' }}>
-                          {severityLabel(item.severity)}
-                        </span>
-                      </div>
-                      <p className="text-xs leading-relaxed line-clamp-2" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-tertiary)' }}>{item.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          const severityWeight: Record<string, number> = { critical: 3, high: 2, medium: 1 };
+          const impactScore = (item: typeof failed[0]) => severityWeight[item.severity] ?? 1;
+          const compositeScore = (item: typeof failed[0]) => impactScore(item) * (100 - item.score);
+          const top5 = [...failed].sort((a, b) => compositeScore(b) - compositeScore(a)).slice(0, 5);
+          const severityLabel = (s: string) => s === 'critical' ? 'Critical' : s === 'high' ? 'High' : 'Medium';
+          const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'high' ? '#f97316' : '#eab308';
 
-            <div className="rounded-xl p-6" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-              <h2 className="text-sm font-semibold mb-1" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
-                중요도 Top 5
-              </h2>
-              <p className="text-[10px] mb-5" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
-                점수 영향(낮은 점수 → 높은 점수) 기준 개선 효과가 큰 항목
-              </p>
-              <div className="space-y-3">
-                {byImpact.map((item, i) => (
-                  <div key={item.id} className="flex items-start gap-3">
-                    <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
-                      style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-elevated)' }}>
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold truncate" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{item.title}</span>
-                        <span className="shrink-0 text-[9px] font-bold tabular-nums rounded-full px-1.5 py-0.5"
-                          style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)', background: 'var(--color-bg-elevated)' }}>
-                          {item.score}점
-                        </span>
-                      </div>
-                      <p className="text-xs leading-relaxed line-clamp-2" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-tertiary)' }}>{item.description}</p>
+          return (
+          <div className="rounded-xl p-6" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+            <h2 className="text-sm font-semibold mb-1" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>
+              핵심 개선 항목 Top 5
+            </h2>
+            <p className="text-[10px] mb-5" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-tertiary)' }}>
+              시급도(심각도) × 중요도(점수 개선 여지) 기준 우선 조치 항목
+            </p>
+            <div className="space-y-3">
+              {top5.map((item, i) => (
+                <div key={item.id} className="flex items-start gap-3">
+                  <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
+                    style={{ fontFamily: 'var(--font-inter)', color: severityColor(item.severity), background: `${severityColor(item.severity)}15` }}>
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold truncate" style={{ fontFamily: 'var(--font-inter)', color: 'var(--color-text-primary)' }}>{item.title}</span>
+                      <span className="shrink-0 text-[9px] font-semibold rounded-full px-1.5 py-0.5"
+                        style={{ fontFamily: 'var(--font-inter)', color: severityColor(item.severity), background: `${severityColor(item.severity)}15` }}>
+                        {severityLabel(item.severity)}
+                      </span>
+                      <span className="shrink-0 text-[9px] font-bold tabular-nums rounded-full px-1.5 py-0.5"
+                        style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score), background: `${scoreColor(item.score)}15` }}>
+                        {item.score}점
+                      </span>
                     </div>
+                    <p className="text-xs leading-relaxed line-clamp-2" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-tertiary)' }}>{item.description}</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
           );

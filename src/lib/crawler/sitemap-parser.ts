@@ -5,17 +5,24 @@ interface SitemapUrl {
   lastmod?: string;
 }
 
-export async function parseSitemap(baseUrl: string): Promise<SitemapUrl[]> {
+export async function parseSitemap(baseUrl: string, prefetchedXml?: string | null): Promise<SitemapUrl[]> {
   const urls: SitemapUrl[] = [];
-  const sitemapUrl = new URL('/sitemap.xml', baseUrl).href;
 
   try {
-    const res = await fetch(sitemapUrl, {
-      headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-    });
-    if (!res.ok) return urls;
-
-    const xml = await res.text();
+    let xml: string;
+    if (typeof prefetchedXml === 'string') {
+      xml = prefetchedXml;
+    } else if (prefetchedXml === null) {
+      return urls;
+    } else {
+      const sitemapUrl = new URL('/sitemap.xml', baseUrl).href;
+      const res = await fetch(sitemapUrl, {
+        headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) return urls;
+      xml = await res.text();
+    }
     const parser = new XMLParser({ ignoreAttributes: false });
     const parsed = parser.parse(xml);
 

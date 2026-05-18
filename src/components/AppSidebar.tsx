@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ClipboardCheck, X, Menu } from 'lucide-react';
+import { ClipboardCheck, X, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 
 const NAV_SECTIONS = [
@@ -14,14 +14,16 @@ const NAV_SECTIONS = [
   },
 ];
 
-function NavSection({ title, items }: { title: string; items: { icon: React.ComponentType<{ className?: string }>; label: string; href: string }[] }) {
+function NavSection({ title, items, collapsed }: { title: string; items: { icon: React.ComponentType<{ className?: string }>; label: string; href: string }[]; collapsed?: boolean }) {
   const pathname = usePathname();
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="px-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-        {title}
-      </div>
+      {!collapsed && (
+        <div className="px-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+          {title}
+        </div>
+      )}
       <div className="flex flex-col gap-0.5">
         {items.map((item) => {
           const Icon = item.icon;
@@ -30,12 +32,13 @@ function NavSection({ title, items }: { title: string; items: { icon: React.Comp
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center ${collapsed ? 'justify-center' : ''} gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              {item.label}
+              {!collapsed && item.label}
             </Link>
           );
         })}
@@ -45,7 +48,7 @@ function NavSection({ title, items }: { title: string; items: { icon: React.Comp
 }
 
 export default function AppSidebar() {
-  const { isOpen, close } = useSidebar();
+  const { isOpen, close, collapsed, toggleCollapsed } = useSidebar();
 
   return (
     <>
@@ -57,20 +60,22 @@ export default function AppSidebar() {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-60 h-full border-r border-slate-100 bg-white shrink-0 transition-transform duration-200 ease-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 ${collapsed ? 'w-[60px]' : 'w-60'} h-full border-r border-slate-100 bg-white shrink-0 transition-all duration-200 ease-out md:static md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } md:!translate-x-0`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between pl-4 pr-2.5 pt-5 pb-2.5">
-            <Link href="/" className="flex items-center gap-2">
-              <img
-                src="/images/BOIDA_logo_black.png"
-                alt="BOIDA Logo"
-                className="h-[28px] w-auto object-contain"
-              />
-            </Link>
+          {/* Logo + collapse toggle */}
+          <div className={`flex items-center justify-between ${collapsed ? 'px-2' : 'pl-4 pr-2'} pt-5 pb-2.5`}>
+            {!collapsed && (
+              <Link href="/" className="flex items-center gap-2">
+                <img
+                  src="/images/BOIDA_logo_black.png"
+                  alt="BOIDA Logo"
+                  className="h-[28px] w-auto object-contain"
+                />
+              </Link>
+            )}
             <button
               type="button"
               onClick={close}
@@ -79,34 +84,56 @@ export default function AppSidebar() {
             >
               <X className="w-5 h-5" />
             </button>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="hidden md:flex p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+            >
+              {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
 
           {/* Product badge */}
-          <div className="px-4 pb-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#0035DA] bg-blue-50 border border-blue-100">
-              Technical GEO Audit
-            </span>
-          </div>
+          {!collapsed && (
+            <div className="px-4 pb-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#0035DA] bg-blue-50 border border-blue-100">
+                Technical GEO Audit
+              </span>
+            </div>
+          )}
 
           {/* Nav */}
-          <div className="flex-1 overflow-y-auto flex flex-col gap-6 px-3 py-2">
+          <div className={`flex-1 overflow-y-auto flex flex-col gap-6 ${collapsed ? 'px-1.5' : 'px-3'} py-2`}>
             {NAV_SECTIONS.map((section) => (
-              <NavSection key={section.title} title={section.title} items={section.items} />
+              <NavSection key={section.title} title={section.title} items={section.items} collapsed={collapsed} />
             ))}
           </div>
 
           {/* Footer — Powered by */}
-          <div className="border-t border-slate-100 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <img
-                src="/images/designovel.png"
-                alt="Designovel"
-                className="h-[22px] w-auto object-contain"
-              />
-            </div>
-            <div className="mt-1.5 text-[9px] text-slate-300 font-medium tracking-wide uppercase">
-              Powered by Designovel
-            </div>
+          <div className={`border-t border-slate-100 ${collapsed ? 'px-2 py-3' : 'px-4 py-4'}`}>
+            {collapsed ? (
+              <div className="flex justify-center">
+                <img
+                  src="/images/designovel.png"
+                  alt="Designovel"
+                  className="h-[18px] w-auto object-contain"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/images/designovel.png"
+                    alt="Designovel"
+                    className="h-[22px] w-auto object-contain"
+                  />
+                </div>
+                <div className="mt-1.5 text-[9px] text-slate-300 font-medium tracking-wide uppercase">
+                  Powered by Designovel
+                </div>
+              </>
+            )}
           </div>
         </div>
       </aside>

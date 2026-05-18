@@ -28,7 +28,8 @@ export default function AuditHistory() {
 
   const handleRemove = (auditId: string) => {
     removeFromHistory(auditId);
-    setEntries(getHistory());
+    fetch(`/api/history?auditId=${encodeURIComponent(auditId)}`, { method: 'DELETE' }).catch(() => {});
+    setEntries((prev) => prev.filter((e) => e.auditId !== auditId));
   };
 
   return (

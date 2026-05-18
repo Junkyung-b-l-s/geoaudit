@@ -39,7 +39,7 @@ export async function crawlSite(
 
   // 2. Try sitemap first
   onProgress?.('crawling', 0, 0);
-  const sitemapUrls = await parseSitemap(baseUrl);
+  const sitemapUrls = await parseSitemap(baseUrl, sitemapXml);
   let pages: ParsedPage[] = [homepage];
 
   if (sitemapUrls.length > 0) {
@@ -50,13 +50,16 @@ export async function crawlSite(
       .slice(0, maxPages - 1);
 
     let fetched = 1;
+    const seenUrls = new Set<string>([url, homepage.url]);
     const fetchPromises = urlsToFetch.map((u) =>
       rateLimited(async () => {
         try {
           const page = await fetchPage(u);
           fetched++;
           onProgress?.('crawling', sitemapUrls.length, fetched);
-          return page.statusCode === 200 ? page : null;
+          if (page.statusCode !== 200 || seenUrls.has(page.url)) return null;
+          seenUrls.add(page.url);
+          return page;
         } catch {
           return null;
         }

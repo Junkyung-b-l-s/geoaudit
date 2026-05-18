@@ -35,7 +35,12 @@ export async function askClaudeJson<T>(
     userPrompt
   );
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('LLM did not return valid JSON');
-  return JSON.parse(jsonMatch[0]);
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const jsonMatch = trimmed.match(/[\[{][\s\S]*[\]}]/);
+    if (!jsonMatch) throw new Error('LLM did not return valid JSON');
+    return JSON.parse(jsonMatch[0]);
+  }
 }

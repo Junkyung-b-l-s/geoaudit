@@ -138,8 +138,9 @@ export const metadataCheckers: CheckerDefinition[] = [
       if (!page) return { id: '3.7', status: 'info', severity: 'critical', title: 'Article Schema', description: '확인 불가', score: 0 };
       const schemas = extractJsonLd(page.html);
       const article = schemas.find((s) => {
-        const t = s['@type'] as string | undefined;
-        return t === 'Article' || t === 'BlogPosting' || t === 'NewsArticle';
+        const t = s['@type'];
+        const types = Array.isArray(t) ? t : [t];
+        return types.some((v) => v === 'Article' || v === 'BlogPosting' || v === 'NewsArticle');
       });
 
       if (!article) return { id: '3.7', status: 'fail', severity: 'critical', title: 'Article Schema', description: 'Article 구조화 데이터 없음', score: 0 };
@@ -181,7 +182,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     checker: ({ page }) => {
       if (!page) return { id: '3.8', status: 'info', severity: 'high', title: 'FAQ Schema', description: '확인 불가', score: 0 };
       const schemas = extractJsonLd(page.html);
-      const faq = schemas.find((s) => s['@type'] === 'FAQPage');
+      const faq = schemas.find((s) => matchType(s, 'FAQPage'));
 
       if (!faq) {
         // Check if page has FAQ-like content but no schema
@@ -210,7 +211,7 @@ export const metadataCheckers: CheckerDefinition[] = [
 
       const isProductPage = /\/(product|shop|item|store|상품|제품)/i.test(page.url);
       const schemas = extractJsonLd(page.html);
-      const product = schemas.find((s) => s['@type'] === 'Product');
+      const product = schemas.find((s) => matchType(s, 'Product'));
 
       if (!isProductPage && !product) {
         return { id: '3.9', status: 'na', severity: 'high', title: 'Product Schema', description: '제품 페이지가 아닌 것으로 추정', score: 100 };
@@ -246,9 +247,9 @@ export const metadataCheckers: CheckerDefinition[] = [
       if (!page) return { id: '3.10', status: 'info', severity: 'high', title: 'Author Schema', description: '확인 불가', score: 0 };
       const schemas = extractJsonLd(page.html);
 
-      const person = schemas.find((s) => s['@type'] === 'Person');
-      const org = schemas.find((s) => s['@type'] === 'Organization');
-      const articleAuthor = schemas.find((s) => (s['@type'] as string)?.includes?.('Article'))?.author;
+      const person = schemas.find((s) => matchType(s, 'Person'));
+      const org = schemas.find((s) => matchType(s, 'Organization'));
+      const articleAuthor = schemas.find((s) => matchType(s, 'Article') || matchType(s, 'BlogPosting') || matchType(s, 'NewsArticle'))?.author;
 
       if (person || org || articleAuthor) {
         const parts: string[] = [];
@@ -275,7 +276,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     checker: ({ page }) => {
       if (!page) return { id: '3.11', status: 'info', severity: 'high', title: '업데이트 날짜', description: '확인 불가', score: 0 };
       const schemas = extractJsonLd(page.html);
-      const article = schemas.find((s) => (s['@type'] as string)?.includes?.('Article') || s['@type'] === 'BlogPosting');
+      const article = schemas.find((s) => matchType(s, 'Article') || matchType(s, 'BlogPosting') || matchType(s, 'NewsArticle'));
       const hasPublished = !!article?.datePublished;
       const hasModified = !!article?.dateModified;
 
@@ -356,6 +357,12 @@ export const metadataCheckers: CheckerDefinition[] = [
     },
   },
 ];
+
+function matchType(schema: Record<string, unknown>, type: string): boolean {
+  const t = schema['@type'];
+  if (Array.isArray(t)) return t.includes(type);
+  return t === type;
+}
 
 function extractJsonLd(html: string): Record<string, unknown>[] {
   const results: Record<string, unknown>[] = [];

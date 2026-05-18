@@ -18,7 +18,7 @@ export async function GET(
       let lastStage = '';
       let lastProgress = -1;
 
-      for (let i = 0; i < 1200; i++) { // Max 10 minutes
+      for (let i = 0; i < 600; i++) { // Max 10 minutes (600 × 1s)
         const audit = getAudit(auditId);
 
         if (!audit) {
@@ -49,7 +49,7 @@ export async function GET(
           return;
         }
 
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 1000));
       }
 
       send({ error: 'Timeout' });
