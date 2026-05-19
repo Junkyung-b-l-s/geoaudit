@@ -15,7 +15,7 @@ export function calculateReport(
   const pageScores = buildPageScores(results, pageUrls);
   const overallScore = calculateOverallScore(categories);
   const allDeduped = categories.flatMap((c) => c.items);
-  const strategies = generateStrategies(allDeduped);
+  const strategies = generateStrategies(allDeduped, lighthouseData);
 
   return {
     auditId,
@@ -73,7 +73,8 @@ function calculateOverallScore(categories: CategoryScore[]): number {
 }
 
 function weightedAverage(results: CheckResult[]): number {
-  const active = results.filter((r) => r.status !== 'na' && r.status !== 'info');
+  // status 필터 + null 안전망: na/info는 score가 null이어야 정상이지만, 타입상 보장 추가
+  const active = results.filter((r) => r.status !== 'na' && r.status !== 'info' && r.score !== null);
   if (active.length === 0) return 100;
 
   let totalWeight = 0;
@@ -81,7 +82,7 @@ function weightedAverage(results: CheckResult[]): number {
 
   for (const r of active) {
     const w = SEVERITY_WEIGHT[r.severity];
-    weightedSum += r.score * w;
+    weightedSum += (r.score as number) * w;
     totalWeight += w;
   }
 
@@ -107,8 +108,10 @@ function deduplicateById(results: CheckResult[]): CheckResult[] {
 
   return Array.from(grouped.entries()).map(([, items]) => {
     if (items.length === 1) return items[0];
-    const avgScore = Math.round(items.reduce((s, r) => s + r.score, 0) / items.length);
-    const worst = items.reduce((w, r) => (r.score < w.score ? r : w));
+    const active = items.filter((r) => r.status !== 'na' && r.status !== 'info' && r.score !== null);
+    if (active.length === 0) return items[0];
+    const avgScore = Math.round(active.reduce((s, r) => s + (r.score as number), 0) / active.length);
+    const worst = active.reduce((w, r) => ((r.score as number) < (w.score as number) ? r : w));
     return { ...worst, score: avgScore };
   });
 }

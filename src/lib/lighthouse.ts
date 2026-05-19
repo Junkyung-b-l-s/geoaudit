@@ -22,7 +22,11 @@ export async function runLighthouse(url: string): Promise<LighthouseData> {
 
   const lcp = audits['largest-contentful-paint']?.numericValue ?? 0;
   const cls = audits['cumulative-layout-shift']?.numericValue ?? 0;
-  const inp = audits['interaction-to-next-paint']?.numericValue ?? 0;
+  const rawInp = audits['interaction-to-next-paint']?.numericValue;
+  const inp = typeof rawInp === 'number' ? rawInp : null;
+  const inpNote = inp === null
+    ? 'Lab 환경에서 INP 측정 불가. PSI/Lighthouse 응답에 interaction-to-next-paint numericValue가 없어 0ms로 대체하지 않습니다.'
+    : undefined;
   const ttfb = audits['server-response-time']?.numericValue ?? 0;
   const tti = audits['interactive']?.numericValue ?? 0;
   const fcp = audits['first-contentful-paint']?.numericValue ?? 0;
@@ -48,7 +52,7 @@ export async function runLighthouse(url: string): Promise<LighthouseData> {
   const diagnostics = parseDiagnostics(audits);
 
   return {
-    lcp, inp, cls, ttfb, tti, fcp, tbt, si,
+    lcp, inp, inpNote, cls, ttfb, tti, fcp, tbt, si,
     clsElements, usesWebp, usesResponsiveImages,
     performanceScore, accessibilityScore, seoScore, bestPracticesScore,
     crux, diagnostics,

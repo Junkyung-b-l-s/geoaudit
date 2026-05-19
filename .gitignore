@@ -36,6 +36,9 @@ yarn-error.log*
 # audit reports cache
 /.reports
 
+# client-specific analysis docs (reviews, decision memos, scratch)
+/docs/private/
+
 # vercel
 .vercel
 

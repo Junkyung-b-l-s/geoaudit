@@ -9,7 +9,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'critical',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.1', status: 'info', severity: 'critical', title: '헤딩 계층 구조', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.1', status: 'info', severity: 'critical', title: '헤딩 계층 구조', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const h1Count = $('h1').length;
@@ -66,7 +66,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.2', status: 'info', severity: 'high', title: '시맨틱 구조', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.2', status: 'info', severity: 'high', title: '시맨틱 구조', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const semanticTags = ['article', 'section', 'nav', 'aside', 'main', 'header', 'footer'];
@@ -105,7 +105,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.3', status: 'info', severity: 'high', title: 'FAQ 마크업', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.3', status: 'info', severity: 'high', title: 'FAQ 마크업', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const hasDl = $('dl').length > 0;
@@ -116,7 +116,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
         $('[class*="faq"], [id*="faq"]').length > 0;
 
       if (!hasFaqContent) {
-        return { id: '2.3', status: 'na', severity: 'high', title: 'FAQ 마크업', description: 'FAQ 콘텐츠 없음', score: 100 };
+        return { id: '2.3', status: 'na', severity: 'high', title: 'FAQ 마크업', description: 'FAQ 콘텐츠 없음', score: null };
       }
 
       if (hasFaqSchema && (hasDl || hasDetails)) {
@@ -141,7 +141,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.4', status: 'info', severity: 'high', title: 'AI 가독 마크업', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.4', status: 'info', severity: 'high', title: 'AI 가독 마크업', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const tables = $('table').length;
@@ -179,7 +179,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page, siteInfo }) => {
-      if (!page || !siteInfo) return { id: '2.6', status: 'info', severity: 'medium', title: '앵커 텍스트', description: '확인 불가', score: 0 };
+      if (!page || !siteInfo) return { id: '2.6', status: 'info', severity: 'medium', title: '앵커 텍스트', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const origin = new URL(siteInfo.baseUrl).origin;
 
@@ -211,7 +211,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
       });
 
       if (total === 0) {
-        return { id: '2.6', status: 'na', severity: 'medium', title: '앵커 텍스트', description: '내부 링크 없음', score: 100 };
+        return { id: '2.6', status: 'na', severity: 'medium', title: '앵커 텍스트', description: '내부 링크 없음', score: null };
       }
 
       const badRate = (generic + empty) / total;
@@ -236,7 +236,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.7', status: 'info', severity: 'high', title: '멀티모달 대체', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.7', status: 'info', severity: 'high', title: '멀티모달 대체', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const imgs = $('img');
@@ -262,7 +262,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
       const videoWithTrack = videos.filter((_, el) => $(el).find('track').length > 0);
 
       if (total === 0 && videos.length === 0) {
-        return { id: '2.7', status: 'na', severity: 'high', title: '멀티모달 대체', description: '이미지/비디오 없음', score: 100 };
+        return { id: '2.7', status: 'na', severity: 'high', title: '멀티모달 대체', description: '이미지/비디오 없음', score: null };
       }
 
       const altRate = total > 0 ? meaningfulAlt / total : 1;
@@ -290,7 +290,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.8', status: 'info', severity: 'high', title: '콘텐츠 깊이/밀도', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.8', status: 'info', severity: 'high', title: '콘텐츠 깊이/밀도', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const bodyText = $('main, article, [role="main"], .content, #content').first().text().trim()
@@ -340,7 +340,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.9', status: 'info', severity: 'medium', title: '인용 가능 데이터', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.9', status: 'info', severity: 'medium', title: '인용 가능 데이터', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const tables = $('table').length;
@@ -392,7 +392,7 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.10', status: 'info', severity: 'medium', title: '정의/용어 마크업', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.10', status: 'info', severity: 'medium', title: '정의/용어 마크업', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const dfn = $('dfn').length;
@@ -423,12 +423,12 @@ export const contentStructureCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '2.11', status: 'info', severity: 'medium', title: '이미지 캡션', description: '확인 불가', score: 0 };
+      if (!page) return { id: '2.11', status: 'info', severity: 'medium', title: '이미지 캡션', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       const totalImages = $('img').length;
       if (totalImages === 0) {
-        return { id: '2.11', status: 'na', severity: 'medium', title: '이미지 캡션', description: '이미지 없음', score: 100 };
+        return { id: '2.11', status: 'na', severity: 'medium', title: '이미지 캡션', description: '이미지 없음', score: null };
       }
 
       const figureImages = $('figure img').length;

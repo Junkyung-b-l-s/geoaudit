@@ -1,4 +1,5 @@
 import { parseHtml } from '../crawler/page-fetcher';
+import { probeUrl } from '../crawler/http-probe';
 import type { CheckerDefinition } from './types';
 
 export const siteStructureCheckers: CheckerDefinition[] = [
@@ -10,7 +11,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: async ({ siteInfo, allPages }) => {
       if (!siteInfo) {
-        return { id: '5.1', status: 'info', severity: 'critical', title: 'HTTPS', description: '확인 불가', score: 0 };
+        return { id: '5.1', status: 'info', severity: 'critical', title: 'HTTPS', description: '확인 불가', score: null };
       }
 
       const isHttps = siteInfo.baseUrl.startsWith('https://');
@@ -69,7 +70,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'aggregate',
     checker: ({ allPages, siteInfo }) => {
       if (!allPages?.length || !siteInfo) {
-        return { id: '5.2', status: 'info', severity: 'high', title: '내부 링크 구조', description: '확인 불가', score: 0 };
+        return { id: '5.2', status: 'info', severity: 'high', title: '내부 링크 구조', description: '확인 불가', score: null };
       }
 
       const origin = new URL(siteInfo.baseUrl).origin;
@@ -134,7 +135,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'aggregate',
     checker: async ({ allPages, siteInfo }) => {
       if (!allPages?.length || !siteInfo) {
-        return { id: '5.3', status: 'info', severity: 'medium', title: '외부 링크 구조', description: '확인 불가', score: 0 };
+        return { id: '5.3', status: 'info', severity: 'medium', title: '외부 링크 구조', description: '확인 불가', score: null };
       }
 
       const origin = new URL(siteInfo.baseUrl).origin;
@@ -159,20 +160,16 @@ export const siteStructureCheckers: CheckerDefinition[] = [
       let broken = 0;
       const brokenUrls: { url: string; status: string }[] = [];
       for (const url of sample) {
-        try {
-          const res = await fetch(url, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-            redirect: 'follow',
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.status >= 400) {
-            broken++;
-            brokenUrls.push({ url, status: `HTTP ${res.status}` });
-          }
-        } catch (e) {
+        const result = await probeUrl(url);
+        // alive=false인 경우만 broken으로 카운트 (405/501/5xx는 살아있음, 404/410만 broken)
+        if (!result.alive) {
           broken++;
-          brokenUrls.push({ url, status: 'connection error' });
+          const label = result.reason === 'not_found' ? `HTTP ${result.status}`
+            : result.reason === 'timeout' ? 'timeout'
+            : result.reason === 'network' ? 'network error'
+            : result.reason === 'client_error' ? `HTTP ${result.status}`
+            : `HTTP ${result.status}`;
+          brokenUrls.push({ url, status: label });
         }
       }
 
@@ -202,7 +199,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'page',
     checker: ({ page }) => {
       if (!page) {
-        return { id: '5.4', status: 'info', severity: 'critical', title: '렌더링 방식', description: '확인 불가', score: 0 };
+        return { id: '5.4', status: 'info', severity: 'critical', title: '렌더링 방식', description: '확인 불가', score: null };
       }
 
       const $ = parseHtml(page.html);
@@ -264,7 +261,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: ({ siteInfo }) => {
       if (!siteInfo) {
-        return { id: '5.5', status: 'info', severity: 'medium', title: '보안 헤더', description: '확인 불가', score: 0 };
+        return { id: '5.5', status: 'info', severity: 'medium', title: '보안 헤더', description: '확인 불가', score: null };
       }
 
       const headers = siteInfo.homepageHeaders;
@@ -306,7 +303,7 @@ export const siteStructureCheckers: CheckerDefinition[] = [
     scope: 'aggregate',
     checker: ({ allPages }) => {
       if (!allPages || allPages.length < 2) {
-        return { id: '5.6', status: 'na', severity: 'medium', title: '페이지 간 콘텐츠 공동화', description: '비교 대상 부족', score: 100 };
+        return { id: '5.6', status: 'na', severity: 'medium', title: '페이지 간 콘텐츠 공동화', description: '비교 대상 부족', score: null };
       }
 
       // Simple Jaccard similarity on word sets

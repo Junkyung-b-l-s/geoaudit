@@ -10,7 +10,7 @@ export interface CheckResult {
   title: string;
   description: string;
   details?: string;
-  score: number; // 0-100
+  score: number | null; // 0-100 또는 측정 불가/해당 없음(na/info) 시 null
   llmUsed?: boolean;
   layer?: CheckLayer;
   pageUrl?: string;
@@ -64,7 +64,8 @@ export interface PsiDiagnostic {
 
 export interface LighthouseData {
   lcp: number;
-  inp: number;
+  inp: number | null;
+  inpNote?: string;
   cls: number;
   ttfb: number;
   tti: number;

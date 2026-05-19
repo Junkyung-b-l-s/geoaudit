@@ -9,7 +9,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'critical',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.1', status: 'info', severity: 'critical', title: 'Title 태그', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.1', status: 'info', severity: 'critical', title: 'Title 태그', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const title = $('title').text().trim();
 
@@ -27,7 +27,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.2', status: 'info', severity: 'high', title: 'Meta Description', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.2', status: 'info', severity: 'high', title: 'Meta Description', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const desc = $('meta[name="description"]').attr('content')?.trim();
 
@@ -46,7 +46,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.3', status: 'info', severity: 'high', title: 'OG 태그', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.3', status: 'info', severity: 'high', title: 'OG 태그', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const required = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type'];
       const found = required.filter((tag) => $(`meta[property="${tag}"]`).attr('content'));
@@ -79,7 +79,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'critical',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.4', status: 'info', severity: 'critical', title: 'Canonical URL', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.4', status: 'info', severity: 'critical', title: 'Canonical URL', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const canonical = $('link[rel="canonical"]').attr('href');
 
@@ -95,12 +95,12 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.5', status: 'info', severity: 'medium', title: 'Hreflang', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.5', status: 'info', severity: 'medium', title: 'Hreflang', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const hreflangs = $('link[rel="alternate"][hreflang]');
 
       if (hreflangs.length === 0) {
-        return { id: '3.5', status: 'na', severity: 'medium', title: 'Hreflang', description: 'hreflang 미사용 (단일 언어 사이트로 추정)', score: 100 };
+        return { id: '3.5', status: 'na', severity: 'medium', title: 'Hreflang', description: 'hreflang 미사용 (단일 언어 사이트로 추정)', score: null };
       }
 
       return { id: '3.5', status: 'pass', severity: 'medium', title: 'Hreflang', description: `${hreflangs.length}개 hreflang 태그 존재`, score: 100 };
@@ -113,7 +113,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.6', status: 'info', severity: 'medium', title: 'Noscript', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.6', status: 'info', severity: 'medium', title: 'Noscript', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const noscripts = $('noscript');
       const meaningful = noscripts.filter((_, el) => {
@@ -135,7 +135,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'critical',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.7', status: 'info', severity: 'critical', title: 'Article Schema', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.7', status: 'info', severity: 'critical', title: 'Article Schema', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
       const article = schemas.find((s) => {
         const t = s['@type'];
@@ -180,7 +180,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.8', status: 'info', severity: 'high', title: 'FAQ Schema', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.8', status: 'info', severity: 'high', title: 'FAQ Schema', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
       const faq = schemas.find((s) => matchType(s, 'FAQPage'));
 
@@ -194,7 +194,7 @@ export const metadataCheckers: CheckerDefinition[] = [
         if (hasFaqContent) {
           return { id: '3.8', status: 'warning', severity: 'high', title: 'FAQ Schema', description: 'FAQ 콘텐츠는 있으나 FAQPage 스키마 없음', score: 30 };
         }
-        return { id: '3.8', status: 'na', severity: 'high', title: 'FAQ Schema', description: 'FAQ 콘텐츠 없음', score: 100 };
+        return { id: '3.8', status: 'na', severity: 'high', title: 'FAQ Schema', description: 'FAQ 콘텐츠 없음', score: null };
       }
 
       return { id: '3.8', status: 'pass', severity: 'high', title: 'FAQ Schema', description: 'FAQPage 구조화 데이터 존재', score: 100 };
@@ -207,14 +207,14 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.9', status: 'info', severity: 'high', title: 'Product Schema', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.9', status: 'info', severity: 'high', title: 'Product Schema', description: '확인 불가', score: null };
 
       const isProductPage = /\/(product|shop|item|store|상품|제품)/i.test(page.url);
       const schemas = extractJsonLd(page.html);
       const product = schemas.find((s) => matchType(s, 'Product'));
 
       if (!isProductPage && !product) {
-        return { id: '3.9', status: 'na', severity: 'high', title: 'Product Schema', description: '제품 페이지가 아닌 것으로 추정', score: 100 };
+        return { id: '3.9', status: 'na', severity: 'high', title: 'Product Schema', description: '제품 페이지가 아닌 것으로 추정', score: null };
       }
 
       if (isProductPage && !product) {
@@ -234,7 +234,7 @@ export const metadataCheckers: CheckerDefinition[] = [
         };
       }
 
-      return { id: '3.9', status: 'na', severity: 'high', title: 'Product Schema', description: '해당 없음', score: 100 };
+      return { id: '3.9', status: 'na', severity: 'high', title: 'Product Schema', description: '해당 없음', score: null };
     },
   },
   {
@@ -244,7 +244,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.10', status: 'info', severity: 'high', title: 'Author Schema', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.10', status: 'info', severity: 'high', title: 'Author Schema', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
 
       const person = schemas.find((s) => matchType(s, 'Person'));
@@ -274,7 +274,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.11', status: 'info', severity: 'high', title: '업데이트 날짜', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.11', status: 'info', severity: 'high', title: '업데이트 날짜', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
       const article = schemas.find((s) => matchType(s, 'Article') || matchType(s, 'BlogPosting') || matchType(s, 'NewsArticle'));
       const hasPublished = !!article?.datePublished;
@@ -300,7 +300,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'aggregate',
     checker: ({ allPages }) => {
-      if (!allPages?.length) return { id: '3.12', status: 'info', severity: 'high', title: 'URL 정규화', description: '확인 불가', score: 0 };
+      if (!allPages?.length) return { id: '3.12', status: 'info', severity: 'high', title: 'URL 정규화', description: '확인 불가', score: null };
 
       const normalized = new Map<string, string[]>();
       for (const page of allPages) {
@@ -333,7 +333,7 @@ export const metadataCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '3.14', status: 'info', severity: 'high', title: '엔티티 스키마', description: '확인 불가', score: 0 };
+      if (!page) return { id: '3.14', status: 'info', severity: 'high', title: '엔티티 스키마', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
       const withSameAs = schemas.filter((s) => s.sameAs);
 

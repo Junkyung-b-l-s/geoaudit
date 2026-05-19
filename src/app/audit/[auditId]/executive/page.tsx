@@ -278,7 +278,8 @@ export default function ExecutiveReport() {
 
           const severityWeight: Record<string, number> = { critical: 3, high: 2, medium: 1 };
           const impactScore = (item: typeof failed[0]) => severityWeight[item.severity] ?? 1;
-          const compositeScore = (item: typeof failed[0]) => impactScore(item) * (100 - item.score);
+          // fail/warning은 항상 score가 number지만, 타입 안전성을 위해 null 폴백
+          const compositeScore = (item: typeof failed[0]) => impactScore(item) * (100 - (item.score ?? 0));
           const top5 = [...failed].sort((a, b) => compositeScore(b) - compositeScore(a)).slice(0, 5);
           const severityLabel = (s: string) => s === 'critical' ? 'Critical' : s === 'high' ? 'High' : 'Medium';
           const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'high' ? '#f97316' : '#eab308';
@@ -306,8 +307,8 @@ export default function ExecutiveReport() {
                         {severityLabel(item.severity)}
                       </span>
                       <span className="shrink-0 text-[9px] font-bold tabular-nums rounded-full px-1.5 py-0.5"
-                        style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score), background: `${scoreColor(item.score)}15` }}>
-                        {item.score}점
+                        style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score ?? 0), background: `${scoreColor(item.score ?? 0)}15` }}>
+                        {item.score ?? '—'}점
                       </span>
                     </div>
                     <p className="text-xs leading-relaxed line-clamp-2" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-tertiary)' }}>{item.description}</p>

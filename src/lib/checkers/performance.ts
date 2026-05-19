@@ -10,7 +10,7 @@ export const performanceCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: ({ lighthouseData }) => {
       if (!lighthouseData) {
-        return { id: '1.1', status: 'info', severity: 'high', title: 'Core Web Vitals', description: 'Lighthouse 데이터 없음', score: 0 };
+        return { id: '1.1', status: 'info', severity: 'high', title: 'Core Web Vitals', description: 'Lighthouse 데이터 없음', score: null };
       }
 
       const { lcp, cls, inp } = lighthouseData;
@@ -23,16 +23,21 @@ export const performanceCheckers: CheckerDefinition[] = [
       if (cls > 0.25) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.25) 초과 — 레이아웃 불안정으로 UX 저하`); score -= 40; }
       else if (cls > 0.1) { issues.push(`CLS ${cls.toFixed(3)}로 Google 권장(0.1) 초과 — 레이아웃 시프트 개선 필요`); score -= 20; }
 
-      if (inp > 500) { issues.push(`INP ${inp}ms로 Google 권장(500ms) 초과 — 인터랙션 심각하게 느림`); score -= 40; }
-      else if (inp > 200) { issues.push(`INP ${inp}ms로 Google 권장(200ms) 초과 — 인터랙션 응답 개선 필요`); score -= 20; }
+      if (inp !== null) {
+        if (inp > 500) { issues.push(`INP ${inp}ms로 Google 권장(500ms) 초과 — 인터랙션 심각하게 느림`); score -= 40; }
+        else if (inp > 200) { issues.push(`INP ${inp}ms로 Google 권장(200ms) 초과 — 인터랙션 응답 개선 필요`); score -= 20; }
+      }
+
+      const inpText = inp === null ? 'INP 데이터 없음(Lab 환경 측정 불가)' : `INP ${inp}ms(기준 200ms)`;
+      const inpDetail = inp === null ? 'INP: 데이터 없음 (Lab 환경 측정 불가)' : `INP: ${inp}ms (기준: 200ms)`;
 
       return {
         id: '1.1',
         status: issues.length === 0 ? 'pass' : score >= 60 ? 'warning' : 'fail',
         severity: 'high',
         title: 'Core Web Vitals',
-        description: issues.length === 0 ? `LCP ${(lcp / 1000).toFixed(1)}초(기준 2.5초), CLS ${cls.toFixed(3)}(기준 0.1), INP ${inp}ms(기준 200ms) 모두 양호` : issues.join(', '),
-        details: `LCP: ${(lcp / 1000).toFixed(1)}초 (기준: 2.5초), CLS: ${cls.toFixed(3)} (기준: 0.1), INP: ${inp}ms (기준: 200ms)`,
+        description: issues.length === 0 ? `LCP ${(lcp / 1000).toFixed(1)}초(기준 2.5초), CLS ${cls.toFixed(3)}(기준 0.1), ${inpText}` : issues.join(', '),
+        details: `LCP: ${(lcp / 1000).toFixed(1)}초 (기준: 2.5초), CLS: ${cls.toFixed(3)} (기준: 0.1), ${inpDetail}`,
         score: Math.max(0, score),
       };
     },
@@ -45,7 +50,7 @@ export const performanceCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: ({ lighthouseData }) => {
       if (!lighthouseData) {
-        return { id: '1.2', status: 'info', severity: 'high', title: '로딩 속도', description: 'Lighthouse 데이터 없음', score: 0 };
+        return { id: '1.2', status: 'info', severity: 'high', title: '로딩 속도', description: 'Lighthouse 데이터 없음', score: null };
       }
 
       const { ttfb, tti } = lighthouseData;
@@ -77,7 +82,7 @@ export const performanceCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: ({ lighthouseData }) => {
       if (!lighthouseData) {
-        return { id: '1.3', status: 'info', severity: 'medium', title: 'CLS 유발 요소', description: 'Lighthouse 데이터 없음', score: 0 };
+        return { id: '1.3', status: 'info', severity: 'medium', title: 'CLS 유발 요소', description: 'Lighthouse 데이터 없음', score: null };
       }
 
       const { clsElements } = lighthouseData;
@@ -106,7 +111,7 @@ export const performanceCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'site',
     checker: ({ lighthouseData, page }) => {
-      if (!page) return { id: '1.4', status: 'info', severity: 'medium', title: '이미지 최적화', description: '확인 불가', score: 0 };
+      if (!page) return { id: '1.4', status: 'info', severity: 'medium', title: '이미지 최적화', description: '확인 불가', score: null };
 
       const issues: string[] = [];
       let score = 100;

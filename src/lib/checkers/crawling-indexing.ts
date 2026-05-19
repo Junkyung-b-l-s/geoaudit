@@ -1,5 +1,6 @@
 import robotsParser from 'robots-parser';
 import { parseHtml } from '../crawler/page-fetcher';
+import { probeUrl } from '../crawler/http-probe';
 import type { CheckerDefinition } from './types';
 
 const AI_BOTS = [
@@ -98,7 +99,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
           severity: 'critical',
           title: 'AI 크롤러 허용 여부',
           description: 'robots.txt 없음 — AI 크롤러 차단 여부 확인 불가 (기본 허용)',
-          score: 60,
+          score: null,
         };
       }
 
@@ -215,7 +216,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
       title: '색인 상태',
       description: 'Google Search Console API 연결 필요. site: 검색으로 대략적 확인 가능.',
       details: siteInfo ? `확인 URL: site:${new URL(siteInfo.baseUrl).hostname}` : undefined,
-      score: 50,
+      score: null,
     }),
   },
   {
@@ -273,7 +274,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
     scope: 'site',
     checker: async ({ siteInfo, page }) => {
       if (!siteInfo) {
-        return { id: '4.7', status: 'info', severity: 'medium', title: 'AI 콘텐츠 피드', description: '확인 불가', score: 0 };
+        return { id: '4.7', status: 'info', severity: 'medium', title: 'AI 콘텐츠 피드', description: '확인 불가', score: null };
       }
 
       const feedPaths = ['/feed', '/feed.xml', '/rss', '/rss.xml', '/atom.xml', '/feed.json'];
@@ -292,18 +293,11 @@ export const crawlingCheckers: CheckerDefinition[] = [
 
       // Probe common paths
       for (const path of feedPaths) {
-        try {
-          const res = await fetch(`${siteInfo.baseUrl}${path}`, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-          });
-          if (res.ok) {
-            const ct = res.headers.get('content-type') || '';
-            const feedType = ct.includes('json') ? 'JSON Feed' : ct.includes('atom') ? 'Atom' : ct.includes('rss') || ct.includes('xml') ? 'RSS' : 'unknown';
-            feeds.push({ url: path, type: feedType });
-          }
-        } catch {
-          // Not available
+        const result = await probeUrl(`${siteInfo.baseUrl}${path}`);
+        if (result.alive && result.status < 400) {
+          const ct = result.contentType || '';
+          const feedType = ct.includes('json') ? 'JSON Feed' : ct.includes('atom') ? 'Atom' : ct.includes('rss') || ct.includes('xml') ? 'RSS' : 'unknown';
+          feeds.push({ url: path, type: feedType });
         }
       }
 
@@ -344,7 +338,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
           severity: 'high',
           title: 'Sitemap lastmod 정확성',
           description: 'sitemap 또는 크롤링 데이터 없음',
-          score: 0,
+          score: null,
         };
       }
 
@@ -382,7 +376,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
         title: 'Sitemap lastmod 정확성',
         description: `sitemap에 ${matches}개 URL의 lastmod 존재 확인됨 (정확성 미검증)`,
         details: `샘플 lastmod:\n${sampleDetail}`,
-        score: 70,
+        score: null,
       };
     },
   },
@@ -393,7 +387,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'site',
     checker: async ({ siteInfo }) => {
-      if (!siteInfo) return { id: '4.10', status: 'info', severity: 'high', title: 'AI 에이전트 연동 파일', description: '확인 불가', score: 0 };
+      if (!siteInfo) return { id: '4.10', status: 'info', severity: 'high', title: 'AI 에이전트 연동 파일', description: '확인 불가', score: null };
 
       const paths = [
         { path: '/.well-known/ai-plugin.json', label: 'ChatGPT Plugin manifest' },
@@ -403,14 +397,8 @@ export const crawlingCheckers: CheckerDefinition[] = [
       const found: string[] = [];
 
       for (const { path, label } of paths) {
-        try {
-          const res = await fetch(`${siteInfo.baseUrl}${path}`, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.ok) found.push(label);
-        } catch { /* not available */ }
+        const result = await probeUrl(`${siteInfo.baseUrl}${path}`);
+        if (result.alive && result.status < 400) found.push(label);
       }
 
       if (found.length > 0) {
@@ -424,7 +412,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
       return {
         id: '4.10', status: 'info', severity: 'high', title: 'AI 에이전트 연동 파일',
         description: 'ai-plugin.json, ai.txt 등 AI 에이전트 연동 파일이 없습니다. 아직 표준화되지 않은 영역입니다.',
-        score: 50,
+        score: null,
       };
     },
   },
@@ -435,7 +423,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '4.11', status: 'info', severity: 'medium', title: '콘텐츠 라이선스 명시', description: '확인 불가', score: 0 };
+      if (!page) return { id: '4.11', status: 'info', severity: 'medium', title: '콘텐츠 라이선스 명시', description: '확인 불가', score: null };
 
       const $ = parseHtml(page.html);
 
@@ -500,7 +488,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'aggregate',
     checker: ({ allPages }) => {
-      if (!allPages?.length) return { id: '4.12', status: 'info', severity: 'high', title: '콘텐츠 신선도', description: '확인 불가', score: 0 };
+      if (!allPages?.length) return { id: '4.12', status: 'info', severity: 'high', title: '콘텐츠 신선도', description: '확인 불가', score: null };
 
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -566,7 +554,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
     scope: 'aggregate',
     checker: ({ siteInfo }) => {
       if (!siteInfo?.sitemapXml) {
-        return { id: '4.13', status: 'info', severity: 'medium', title: '발행 빈도', description: 'sitemap 없어 분석 불가', score: 0 };
+        return { id: '4.13', status: 'info', severity: 'medium', title: '발행 빈도', description: 'sitemap 없어 분석 불가', score: null };
       }
 
       const lastmodRegex = /<lastmod>([^<]+)<\/lastmod>/g;
@@ -628,21 +616,15 @@ export const crawlingCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'site',
     checker: async ({ siteInfo, allPages }) => {
-      if (!siteInfo) return { id: '4.14', status: 'info', severity: 'medium', title: 'API/데이터 엔드포인트', description: '확인 불가', score: 0 };
+      if (!siteInfo) return { id: '4.14', status: 'info', severity: 'medium', title: 'API/데이터 엔드포인트', description: '확인 불가', score: null };
 
       const found: string[] = [];
 
       // Check for OpenAPI/Swagger
       const apiPaths = ['/openapi.json', '/swagger.json', '/api-docs', '/.well-known/openapi.yaml'];
       for (const path of apiPaths) {
-        try {
-          const res = await fetch(`${siteInfo.baseUrl}${path}`, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.ok) found.push(path);
-        } catch { /* not available */ }
+        const result = await probeUrl(`${siteInfo.baseUrl}${path}`);
+        if (result.alive && result.status < 400) found.push(path);
       }
 
       // Check link tags in pages
@@ -668,7 +650,7 @@ export const crawlingCheckers: CheckerDefinition[] = [
       return {
         id: '4.14', status: 'na', severity: 'medium', title: 'API/데이터 엔드포인트',
         description: '공개 API 엔드포인트가 발견되지 않았습니다. 필수 사항은 아니지만 AI 에이전트 연동에 유리합니다.',
-        score: 50,
+        score: null,
       };
     },
   },

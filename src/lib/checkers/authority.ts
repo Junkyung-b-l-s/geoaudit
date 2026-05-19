@@ -1,4 +1,5 @@
 import { parseHtml } from '../crawler/page-fetcher';
+import { probeUrl } from '../crawler/http-probe';
 import type { CheckerDefinition } from './types';
 
 function extractJsonLd(html: string): Record<string, unknown>[] {
@@ -24,21 +25,14 @@ export const authorityCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'site',
     checker: async ({ siteInfo, allPages }) => {
-      if (!siteInfo) return { id: '6.1', status: 'info', severity: 'high', title: 'About/Team 페이지', description: '확인 불가', score: 0 };
+      if (!siteInfo) return { id: '6.1', status: 'info', severity: 'high', title: 'About/Team 페이지', description: '확인 불가', score: null };
 
       const aboutPaths = ['/about', '/about-us', '/team', '/company', '/소개', '/회사소개', '/about/', '/team/'];
       const found: string[] = [];
 
       for (const path of aboutPaths) {
-        try {
-          const res = await fetch(`${siteInfo.baseUrl}${path}`, {
-            method: 'HEAD',
-            headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
-            redirect: 'follow',
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.ok) found.push(path);
-        } catch { /* not available */ }
+        const result = await probeUrl(`${siteInfo.baseUrl}${path}`);
+        if (result.alive && result.status < 400) found.push(path);
       }
 
       if (allPages) {
@@ -80,7 +74,7 @@ export const authorityCheckers: CheckerDefinition[] = [
     severity: 'medium',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '6.2', status: 'info', severity: 'medium', title: '저자 프로필 링크', description: '확인 불가', score: 0 };
+      if (!page) return { id: '6.2', status: 'info', severity: 'medium', title: '저자 프로필 링크', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
 
       let authorLinks = 0;
@@ -140,7 +134,7 @@ export const authorityCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page, siteInfo }) => {
-      if (!page || !siteInfo) return { id: '6.3', status: 'info', severity: 'high', title: '외부 권위 인용', description: '확인 불가', score: 0 };
+      if (!page || !siteInfo) return { id: '6.3', status: 'info', severity: 'high', title: '외부 권위 인용', description: '확인 불가', score: null };
       const $ = parseHtml(page.html);
       const origin = new URL(siteInfo.baseUrl).origin;
 
@@ -208,7 +202,7 @@ export const authorityCheckers: CheckerDefinition[] = [
     severity: 'critical',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '6.4', status: 'info', severity: 'critical', title: 'Organization Schema 완비', description: '확인 불가', score: 0 };
+      if (!page) return { id: '6.4', status: 'info', severity: 'critical', title: 'Organization Schema 완비', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
       const org = schemas.find((s) => s['@type'] === 'Organization' || s['@type'] === 'Corporation' || s['@type'] === 'LocalBusiness');
 
@@ -266,7 +260,7 @@ export const authorityCheckers: CheckerDefinition[] = [
     severity: 'high',
     scope: 'page',
     checker: ({ page }) => {
-      if (!page) return { id: '6.5', status: 'info', severity: 'high', title: 'Knowledge Panel 연결', description: '확인 불가', score: 0 };
+      if (!page) return { id: '6.5', status: 'info', severity: 'high', title: 'Knowledge Panel 연결', description: '확인 불가', score: null };
       const schemas = extractJsonLd(page.html);
 
       const knowledgeDomains = /wikipedia\.org|wikidata\.org|dbpedia\.org|crunchbase\.com/i;

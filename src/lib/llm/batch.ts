@@ -5,6 +5,7 @@ import {
   META_QUALITY_SYSTEM, metaQualityUser,
   URL_STRUCTURE_SYSTEM, urlStructureUser,
   AI_CITATION_SYSTEM, aiCitationUser,
+  type SiteContext,
 } from './prompts';
 import type { CheckResult, ParsedPage, SiteInfo } from '@/types/check';
 
@@ -42,7 +43,7 @@ function runKeywordAlignment(pages: ParsedPage[]): Promise<CheckResult[]> {
     }));
   }).catch(() => [{
     id: '2.5', status: 'info' as const, severity: 'high' as const, title: '키워드-타이틀-H1 정합성',
-    description: 'LLM 판정 실패', score: 50, llmUsed: true,
+    description: 'LLM 판정 실패', score: null, llmUsed: true,
   }]);
 }
 
@@ -72,7 +73,7 @@ function runMetaQuality(pages: ParsedPage[]): Promise<CheckResult[]> {
     }];
   }).catch(() => [{
     id: '3.13', status: 'info' as const, severity: 'medium' as const, title: '메타 정보 품질',
-    description: 'LLM 판정 실패', score: 50, llmUsed: true,
+    description: 'LLM 판정 실패', score: null, llmUsed: true,
   }]);
 }
 
@@ -89,11 +90,11 @@ function runUrlStructure(pages: ParsedPage[]): Promise<CheckResult[]> {
     score: resp.score, llmUsed: true,
   }]).catch(() => [{
     id: '4.5', status: 'info' as const, severity: 'high' as const, title: 'URL 구조 명확성',
-    description: 'LLM 판정 실패', score: 50, llmUsed: true,
+    description: 'LLM 판정 실패', score: null, llmUsed: true,
   }]);
 }
 
-function runAiCitation(pages: ParsedPage[], siteInfo: SiteInfo): Promise<CheckResult[]> {
+function runAiCitation(pages: ParsedPage[], siteInfo: SiteInfo, siteContext?: SiteContext): Promise<CheckResult[]> {
   const $ = parseHtml(pages[0].html);
   const brandName = $('meta[property="og:site_name"]').attr('content') ||
     $('title').text().split(/[-|–]/).pop()?.trim() ||
@@ -105,7 +106,7 @@ function runAiCitation(pages: ParsedPage[], siteInfo: SiteInfo): Promise<CheckRe
 
   return askClaudeJson<{ score: number; question: string; likelihood: string }>(
     AI_CITATION_SYSTEM,
-    aiCitationUser(brandName, siteInfo.baseUrl, topics)
+    aiCitationUser(brandName, siteInfo.baseUrl, topics, siteContext)
   ).then((resp) => [{
     id: '4.9', status: (resp.score >= 70 ? 'pass' : resp.score >= 40 ? 'warning' : 'fail') as CheckResult['status'],
     severity: 'medium' as const, title: 'AI 인용 가능성 진단',
@@ -114,14 +115,15 @@ function runAiCitation(pages: ParsedPage[], siteInfo: SiteInfo): Promise<CheckRe
     score: resp.score, llmUsed: true,
   }]).catch(() => [{
     id: '4.9', status: 'info' as const, severity: 'medium' as const, title: 'AI 인용 가능성',
-    description: 'LLM 판정 실패', score: 50, llmUsed: true,
+    description: 'LLM 판정 실패', score: null, llmUsed: true,
   }]);
 }
 
 export async function runLlmChecks(
   pages: ParsedPage[],
   siteInfo: SiteInfo,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
+  siteContext?: SiteContext,
 ): Promise<CheckResult[]> {
   let done = 0;
   onProgress?.(0, 4);
@@ -131,7 +133,7 @@ export async function runLlmChecks(
     runKeywordAlignment(pages).then(tick),
     runMetaQuality(pages).then(tick),
     runUrlStructure(pages).then(tick),
-    runAiCitation(pages, siteInfo).then(tick),
+    runAiCitation(pages, siteInfo, siteContext).then(tick),
   ]);
 
   return [...kwResults, ...metaResults, ...urlResults, ...citationResults];

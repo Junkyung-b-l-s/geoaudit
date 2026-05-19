@@ -1,4 +1,4 @@
-import type { CheckResult } from '@/types/check';
+import type { CheckResult, LighthouseData } from '@/types/check';
 
 export interface GeoStrategy {
   id: string;
@@ -9,11 +9,13 @@ export interface GeoStrategy {
   relatedChecks: string[];
 }
 
-export function generateStrategies(items: CheckResult[]): GeoStrategy[] {
+export function generateStrategies(items: CheckResult[], lighthouseData?: LighthouseData): GeoStrategy[] {
   const byId = new Map<string, CheckResult>();
   for (const item of items) {
     const existing = byId.get(item.id);
-    if (!existing || item.score < existing.score) byId.set(item.id, item);
+    // score가 null이면 측정 불가 — 비교 대상에서 제외 (existing 우선 유지)
+    if (item.score === null) continue;
+    if (!existing || existing.score === null || item.score < existing.score) byId.set(item.id, item);
   }
 
   const get = (id: string) => byId.get(id);
@@ -21,6 +23,7 @@ export function generateStrategies(items: CheckResult[]): GeoStrategy[] {
     const r = get(id);
     return r && (r.status === 'fail' || r.status === 'warning');
   };
+  const statusOf = (id: string) => get(id)?.status;
 
   const strategies: GeoStrategy[] = [];
 
@@ -61,7 +64,12 @@ export function generateStrategies(items: CheckResult[]): GeoStrategy[] {
       rationale = 'robots.txt에서 AI 크롤러(GPTBot, ClaudeBot 등)가 차단되어 있습니다. llms.txt는 존재하지만, 크롤러 자체가 접근할 수 없으면 무의미합니다.';
       method = 'robots.txt를 수정하여 GPTBot, ClaudeBot, anthropic-ai 등 주요 AI 크롤러에 대해 Allow 규칙을 추가하세요. User-Agent별로 세분화하여 허용 범위를 관리할 수 있습니다.';
     } else {
-      rationale = 'AI 크롤러 접근은 허용되어 있으나 llms.txt가 없습니다. llms.txt는 AI에게 브랜드를 직접 소개하는 전용 채널로, 이를 통해 AI 모델이 정확한 브랜드 정보를 학습할 수 있습니다.';
+      // 4.2가 pass면 명시적 Allow 확인, info면 robots.txt 자체가 없어 차단 미확인 — 단정 표현 회피
+      const robotsConfirmedAllow = statusOf('4.2') === 'pass';
+      const accessPhrase = robotsConfirmedAllow
+        ? 'AI 크롤러 접근이 robots.txt에서 명시적으로 허용되어 있으나'
+        : 'AI 크롤러 차단은 확인되지 않았으나 (robots.txt 자체 부재 가능)';
+      rationale = `${accessPhrase} llms.txt가 없습니다. llms.txt는 AI에게 브랜드를 직접 소개하는 전용 채널로, 이를 통해 AI 모델이 정확한 브랜드 정보를 학습할 수 있습니다.`;
       method = '루트 경로(/)에 llms.txt를 생성하세요. 브랜드명, 핵심 서비스 설명, 주요 콘텐츠 URL, 연락처 정보를 포함하세요. llms-full.txt로 상세 버전도 제공하면 더 효과적입니다.';
     }
 
@@ -100,55 +108,92 @@ export function generateStrategies(items: CheckResult[]): GeoStrategy[] {
   }
 
   // ── freshness-signals ──
-  if (isBad('3.11') || isBad('4.8')) {
+  // 4.8 상태 구분: 'na' = sitemap 자체가 없음 (선행 조건 미충족), 'warning' = sitemap은 있으나 lastmod 누락, 'info' = lastmod 존재(정확성 미검증)
+  // sitemap이 없으면 lastmod 정정은 의미 없음 — 먼저 sitemap 발행이 필요
+  {
     const schemaBad = isBad('3.11');
-    const sitemapBad = isBad('4.8');
+    const sitemap48Status = statusOf('4.8');
+    const sitemapMissing = sitemap48Status === 'na';
+    const lastmodMissing = sitemap48Status === 'warning';
 
-    let rationale: string;
-    let method: string;
+    if (schemaBad || sitemapMissing || lastmodMissing) {
+      const clauses: string[] = [];
+      const methods: string[] = [];
+      const related: string[] = [];
 
-    if (schemaBad && sitemapBad) {
-      rationale = 'JSON-LD에 dateModified가 누락되어 있고, Sitemap의 lastmod도 부정확합니다. AI 모델이 콘텐츠의 최신성을 판단할 수 있는 신호가 부족한 상태입니다.';
-      method = 'JSON-LD에 datePublished와 dateModified를 정확히 기입하고, Sitemap의 lastmod도 실제 수정일과 일치시키세요. 콘텐츠 업데이트 시 두 곳 모두 자동 갱신되도록 CMS를 설정하세요.';
-    } else if (schemaBad) {
-      rationale = 'JSON-LD에 dateModified가 누락되어 있습니다. Sitemap lastmod는 존재하지만, AI 모델은 페이지 내 스키마의 날짜 정보를 더 직접적으로 참조합니다.';
-      method = 'JSON-LD에 datePublished와 dateModified를 추가하세요. 콘텐츠를 실제로 업데이트할 때 dateModified도 함께 갱신해야 AI가 최신 정보로 인식합니다.';
-    } else {
-      rationale = 'Sitemap의 lastmod가 부정확하거나 누락되어 있습니다. AI 크롤러는 Sitemap lastmod를 기반으로 재크롤링 우선순위를 결정하므로, 부정확한 lastmod는 크롤링 효율을 떨어뜨립니다.';
-      method = 'Sitemap의 lastmod를 실제 콘텐츠 수정일과 정확히 일치시키세요. 일괄적으로 현재 날짜를 넣는 것은 오히려 신뢰도를 떨어뜨리므로, 실제 변경이 있을 때만 갱신하세요.';
+      if (schemaBad) {
+        clauses.push('JSON-LD에 dateModified가 누락되어 있습니다');
+        methods.push('JSON-LD에 datePublished와 dateModified를 추가하고, 콘텐츠 업데이트 시 dateModified도 함께 갱신하세요.');
+        related.push('3.11');
+      }
+      if (sitemapMissing) {
+        clauses.push('sitemap.xml 자체가 발행되지 않아 lastmod로 최신성 신호를 보낼 수 없습니다');
+        methods.push('먼저 sitemap.xml을 발행하여 robots.txt에 위치를 명시하세요. 그 다음 단계로 각 URL의 lastmod를 실제 수정일과 일치시키세요.');
+        related.push('4.8');
+      } else if (lastmodMissing) {
+        clauses.push('sitemap은 존재하나 lastmod 정보가 비어 있습니다');
+        methods.push('sitemap의 각 URL에 lastmod를 추가하고 실제 콘텐츠 수정일과 일치시키세요. 일괄적으로 현재 날짜를 넣는 것은 오히려 신뢰도를 떨어뜨립니다.');
+        related.push('4.8');
+      }
+
+      strategies.push({
+        id: 'freshness-signals',
+        name: '콘텐츠 최신성 신호 확보',
+        rationale: `${clauses.join('. ')}. AI 모델은 dateModified와 sitemap lastmod를 기반으로 콘텐츠의 최신성과 재크롤링 우선순위를 판단합니다.`,
+        method: methods.join(' '),
+        priority: 'high',
+        relatedChecks: related,
+      });
     }
-
-    strategies.push({
-      id: 'freshness-signals',
-      name: '콘텐츠 최신성 신호 확보',
-      rationale,
-      method,
-      priority: 'high',
-      relatedChecks: ['3.11', '4.8'].filter((id) => isBad(id)),
-    });
   }
 
   // ── performance-rendering ──
+  // 1.2는 TTFB+TTI를 함께 보는 ID이므로 실제 측정값을 확인해 해당 절만 조립
   if (isBad('1.1') || isBad('1.2') || isBad('5.4')) {
     const issues: string[] = [];
-    if (isBad('1.1')) issues.push('페이지 로딩 속도(LCP)');
-    if (isBad('1.2')) issues.push('서버 응답 시간(TTFB)');
-    if (isBad('5.4')) issues.push('JavaScript 렌더링 의존도');
+    const methods: string[] = [];
+    const related: string[] = [];
 
-    const issueLabel = issues.join(', ');
+    if (isBad('1.1')) {
+      const lcpSec = lighthouseData ? (lighthouseData.lcp / 1000).toFixed(1) : null;
+      issues.push(lcpSec ? `페이지 로딩 속도(LCP ${lcpSec}초)` : '페이지 로딩 속도(LCP)');
+      methods.push('LCP 2.5초 이내를 목표로 이미지 최적화, 리소스 프리로드, 불필요한 스크립트 제거를 진행하세요.');
+      related.push('1.1');
+    }
 
-    let methodDetail = '';
-    if (isBad('1.1')) methodDetail += 'LCP 2.5초 이내를 목표로 이미지 최적화, 리소스 프리로드, 불필요한 스크립트 제거를 진행하세요. ';
-    if (isBad('1.2')) methodDetail += 'TTFB 800ms 이내를 목표로 서버 응답을 최적화하고, CDN 적용을 검토하세요. ';
-    if (isBad('5.4')) methodDetail += 'CSR 의존도를 줄이고 SSR/SSG를 적용하면 AI 크롤러가 JavaScript 실행 없이도 콘텐츠를 즉시 읽을 수 있습니다. ';
+    if (isBad('1.2')) {
+      // 1.2 안에서 TTFB·TTI 각각 임계 초과 여부 확인. 측정값 없으면 두 항목 모두 안내.
+      const ttfb = lighthouseData?.ttfb;
+      const tti = lighthouseData?.tti;
+      const ttfbBad = typeof ttfb === 'number' ? ttfb > 800 : true;
+      const ttiBad = typeof tti === 'number' ? tti > 3800 : true;
+
+      if (ttfbBad) {
+        const label = typeof ttfb === 'number' ? `TTFB ${ttfb}ms` : '서버 응답 시간(TTFB)';
+        issues.push(`서버 응답 시간(${label})`);
+        methods.push('TTFB 800ms 이내를 목표로 서버 응답을 최적화하고, CDN 적용을 검토하세요.');
+      }
+      if (ttiBad) {
+        const label = typeof tti === 'number' ? `TTI ${(tti / 1000).toFixed(1)}초` : 'TTI';
+        issues.push(`인터랙션 가능 시점(${label})`);
+        methods.push('TTI 3.8초 이내를 목표로 JavaScript 번들 크기 축소, 메인 스레드 차단 작업 분할을 진행하세요.');
+      }
+      related.push('1.2');
+    }
+
+    if (isBad('5.4')) {
+      issues.push('JavaScript 렌더링 의존도');
+      methods.push('CSR 의존도를 줄이고 SSR/SSG를 적용하면 AI 크롤러가 JavaScript 실행 없이도 콘텐츠를 즉시 읽을 수 있습니다.');
+      related.push('5.4');
+    }
 
     strategies.push({
       id: 'performance-rendering',
       name: '성능 및 렌더링 최적화',
-      rationale: `${issueLabel}에 문제가 있습니다. AI 크롤러는 느린 페이지를 타임아웃 처리하고, JavaScript 렌더링이 필요한 페이지는 콘텐츠를 수집하지 못할 수 있습니다.`,
-      method: methodDetail.trim(),
+      rationale: `${issues.join(', ')}에 문제가 있습니다. AI 크롤러는 느린 페이지를 타임아웃 처리하고, JavaScript 렌더링이 필요한 페이지는 콘텐츠를 수집하지 못할 수 있습니다.`,
+      method: methods.join(' '),
       priority: isBad('1.1') ? 'critical' : 'high',
-      relatedChecks: ['1.1', '1.2', '5.4'].filter((id) => isBad(id)),
+      relatedChecks: related,
     });
   }
 

@@ -719,8 +719,8 @@ export default function ReportOverview({ report }: { report: AuditReport }) {
                           {item.layer === 'both' ? 'SEO+GEO' : item.layer.toUpperCase()}
                         </span>
                       )}
-                      <span className="ml-auto text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: scoreColor(item.score) }}>
-                        {item.score}점
+                      <span className="ml-auto text-xs font-bold tabular-nums" style={{ fontFamily: 'var(--font-inter)', color: item.score === null ? 'var(--color-text-tertiary)' : scoreColor(item.score) }}>
+                        {item.score === null ? 'N/A' : `${item.score}점`}
                       </span>
                     </div>
                     <p className="text-sm leading-relaxed" style={{ fontFamily: 'var(--font-pretendard)', color: 'var(--color-text-secondary)' }}>{item.description}</p>
