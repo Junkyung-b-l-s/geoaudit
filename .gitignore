@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+# 이 프로젝트는 pnpm 사용 — npm/yarn lockfile은 무시
+package-lock.json
+yarn.lock
+
 # testing
 /coverage
 
