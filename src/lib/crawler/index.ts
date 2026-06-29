@@ -2,6 +2,7 @@ import { parseSitemap } from './sitemap-parser';
 import { crawlByLinks } from './link-crawler';
 import { fetchPage } from './page-fetcher';
 import { createRateLimiter } from './rate-limiter';
+import { USER_AGENT } from './user-agent';
 import type { ParsedPage, SiteInfo } from '@/types/check';
 
 interface CrawlResult {
@@ -90,7 +91,7 @@ export async function crawlSite(
 async function fetchText(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
+      headers: { 'User-Agent': USER_AGENT },
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;

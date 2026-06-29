@@ -1,3 +1,5 @@
+import { USER_AGENT } from './user-agent';
+
 export type ProbeReason = 'ok' | 'not_found' | 'method_not_allowed' | 'client_error' | 'server_error' | 'timeout' | 'network';
 
 export interface ProbeResult {
@@ -17,7 +19,7 @@ export interface ProbeOptions {
 
 const DEFAULTS = {
   timeoutMs: 5000,
-  userAgent: 'GEO-Audit-Bot/1.0',
+  userAgent: USER_AGENT,
   redirect: 'follow' as const,
 };
 

@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import type { ParsedPage } from '@/types/check';
+import { USER_AGENT } from './user-agent';
 
-const USER_AGENT = 'GEO-Audit-Bot/1.0 (+https://geo-audit.dev)';
 const TIMEOUT_MS = 15_000;
 
 function detectCharset(contentType: string, htmlBytes: Uint8Array): string {

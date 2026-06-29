@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { USER_AGENT } from './user-agent';
 
 interface SitemapUrl {
   loc: string;
@@ -17,7 +18,7 @@ export async function parseSitemap(baseUrl: string, prefetchedXml?: string | nul
     } else {
       const sitemapUrl = new URL('/sitemap.xml', baseUrl).href;
       const res = await fetch(sitemapUrl, {
-        headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
+        headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) return urls;
@@ -65,7 +66,7 @@ async function parseSitemapFile(url: string): Promise<SitemapUrl[]> {
   const urls: SitemapUrl[] = [];
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'GEO-Audit-Bot/1.0' },
+      headers: { 'User-Agent': USER_AGENT },
     });
     if (!res.ok) return urls;
 
