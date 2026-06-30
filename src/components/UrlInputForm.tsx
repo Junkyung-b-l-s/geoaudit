@@ -88,6 +88,8 @@ export default function UrlInputForm() {
             <option value={100}>100 페이지</option>
             <option value={200}>200 페이지</option>
             <option value={500}>500 페이지</option>
+            <option value={1000}>1000 페이지</option>
+            <option value={2000}>2000 페이지</option>
           </select>
 
           <button

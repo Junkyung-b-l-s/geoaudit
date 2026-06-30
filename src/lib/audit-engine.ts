@@ -149,9 +149,22 @@ export async function runAudit(auditId: string, config: AuditConfig, onProgress:
 
     updateAudit(auditId, { results, report, stage: 'done', progress: 100, message: '감사 완료' });
     emit('done', 100, `진단 완료! 종합 ${report.overallScore}점 — ${report.totalChecks}개 항목을 점검했어요`);
+
+    // Free the crawled page HTML now that the report is built and saved to disk.
+    // Nothing reads pages/siteInfo after completion (the report is self-contained),
+    // and holding every page's HTML in the in-memory store for the TTL window is
+    // exactly what bounds how many pages we can afford to crawl.
+    releaseCrawlData(auditId);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     updateAudit(auditId, { stage: 'error', error: message });
     emit('error', 0, message);
+    releaseCrawlData(auditId);
   }
+}
+
+// Drop the heavy crawl artifacts (full page HTML + site files) from the live
+// store; the persisted report keeps everything the UI needs afterward.
+function releaseCrawlData(auditId: string) {
+  updateAudit(auditId, { pages: undefined, siteInfo: undefined, results: undefined });
 }

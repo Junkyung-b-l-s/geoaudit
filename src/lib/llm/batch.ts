@@ -9,8 +9,22 @@ import {
 } from './prompts';
 import type { CheckResult, ParsedPage, SiteInfo } from '@/types/check';
 
+// LLM checks evaluate a subset of pages to keep token cost flat regardless of
+// crawl size. Sizes are small (only metadata is sent per page), so the absolute
+// cost stays low even as maxPages grows.
+const LLM_SAMPLE = { keyword: 50, meta: 50, url: 50, citation: 12 };
+
+// Spread the sample evenly across ALL crawled pages instead of taking the first
+// N. The first crawled pages skew toward the homepage and top nav, so a stride
+// sample better represents the whole site (including the long tail).
+function samplePages<T>(items: T[], n: number): T[] {
+  if (items.length <= n) return items;
+  const step = items.length / n;
+  return Array.from({ length: n }, (_, i) => items[Math.floor(i * step)]);
+}
+
 function runKeywordAlignment(pages: ParsedPage[]): Promise<CheckResult[]> {
-  const batchPages = pages.slice(0, 20).map((page) => {
+  const batchPages = samplePages(pages, LLM_SAMPLE.keyword).map((page) => {
     const $ = parseHtml(page.html);
     return {
       url: page.url,
@@ -48,7 +62,7 @@ function runKeywordAlignment(pages: ParsedPage[]): Promise<CheckResult[]> {
 }
 
 function runMetaQuality(pages: ParsedPage[]): Promise<CheckResult[]> {
-  const metaPages = pages.slice(0, 20).map((page) => {
+  const metaPages = samplePages(pages, LLM_SAMPLE.meta).map((page) => {
     const $ = parseHtml(page.html);
     return {
       url: page.url,
@@ -78,7 +92,7 @@ function runMetaQuality(pages: ParsedPage[]): Promise<CheckResult[]> {
 }
 
 function runUrlStructure(pages: ParsedPage[]): Promise<CheckResult[]> {
-  const urls = pages.slice(0, 30).map((p) => p.url);
+  const urls = samplePages(pages, LLM_SAMPLE.url).map((p) => p.url);
   return askClaudeJson<{ score: number; issues: string[]; good: string[] }>(
     URL_STRUCTURE_SYSTEM,
     urlStructureUser(urls)
@@ -99,7 +113,7 @@ function runAiCitation(pages: ParsedPage[], siteInfo: SiteInfo, siteContext?: Si
   const brandName = $('meta[property="og:site_name"]').attr('content') ||
     $('title').text().split(/[-|–]/).pop()?.trim() ||
     new URL(siteInfo.baseUrl).hostname;
-  const topics = pages.slice(0, 10).map((p) => {
+  const topics = samplePages(pages, LLM_SAMPLE.citation).map((p) => {
     const $p = parseHtml(p.html);
     return $p('title').text().trim();
   }).filter(Boolean);
